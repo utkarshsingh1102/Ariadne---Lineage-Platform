@@ -60,7 +60,17 @@ CORS_ALLOWED_ORIGINS=http://$${PUBLIC_IP}:3000,http://$${PUBLIC_DNS}:3000
 ENV
 chown ec2-user:ec2-user "$${APP_DIR}/lineage-platform/.env"
 
-echo "[user-data] === Phase 7: docker compose up -d --build ==="
+echo "[user-data] === Phase 7: prepare uploads dir with permissive perms ==="
+# The gateway container runs as a non-root `app` user but the host-mounted
+# uploads dir is created by root (this script). Without explicit perms the
+# gateway hits PermissionError trying to create per-upload subdirs.
+# chmod 777 is fine here: the directory is reachable only through the
+# gateway's own /parse/upload endpoint, behind the security group, and the
+# instance is single-tenant.
+mkdir -p "$${APP_DIR}/lineage-platform/uploads"
+chmod 777 "$${APP_DIR}/lineage-platform/uploads"
+
+echo "[user-data] === Phase 8: docker compose up -d --build ==="
 # user-data runs as root, which has docker access directly. The ec2-user is
 # in the docker group too (added above), so they can `docker ps` after they
 # SSH in (a fresh login session picks up the group).
