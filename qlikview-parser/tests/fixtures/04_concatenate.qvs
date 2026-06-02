@@ -1,0 +1,20 @@
+// ======================================================
+// Fixture 04 — CONCATENATE / NOCONCATENATE
+// Plan §2.5: emit CONCATENATES_INTO edge.
+// Currently not handled — see REVIEW.md §3.3.
+// ======================================================
+
+ODBC CONNECT TO 'TERADATA_PROD';
+
+SalesQ1:
+LOAD OrderID, Amount, 'Q1' AS Quarter;
+SQL SELECT OrderID, Amount FROM PROD.SALES.ORDERS_Q1;
+
+CONCATENATE (SalesQ1) LOAD
+    OrderID, Amount, 'Q2' AS Quarter;
+SQL SELECT OrderID, Amount FROM PROD.SALES.ORDERS_Q2;
+
+NOCONCATENATE
+SalesQ3:
+LOAD OrderID, Amount, 'Q3' AS Quarter;
+SQL SELECT OrderID, Amount FROM PROD.SALES.ORDERS_Q3;

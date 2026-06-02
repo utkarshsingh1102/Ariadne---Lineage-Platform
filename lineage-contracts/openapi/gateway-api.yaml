@@ -1,0 +1,202 @@
+openapi: 3.1.0
+info:
+  title: Lineage Platform — Frontend Gateway
+  version: 0.1.0
+  description: |
+    Frontend-facing aggregation API. The Next.js app never speaks to Neo4j
+    or to individual parsers directly — it goes through this gateway.
+
+paths:
+  /parse:
+    post:
+      summary: Proxy a parse request to the right parser by source_type
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [source_type, file_path]
+              properties:
+                source_type:
+                  type: string
+                  enum: [tableau, tws, qlikview]
+                file_path: { type: string }
+                overwrite: { type: boolean, default: false }
+      responses:
+        '200': { description: Forwarded parser response (see parser-api.yaml ParseResponse) }
+
+  /graph/schema:
+    get:
+      summary: Live graph schema (labels, rel types, property keys)
+      description: Used by the NLP service to prompt the LLM with current shape.
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  labels: { type: array, items: { type: string } }
+                  relationship_types: { type: array, items: { type: string } }
+                  property_keys: { type: array, items: { type: string } }
+
+  /graph/nodes:
+    get:
+      summary: Paginated node list with label/property filters
+      parameters:
+        - in: query
+          name: label
+          schema: { type: string }
+        - in: query
+          name: name_like
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 50, maximum: 500 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0 }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphPayload'
+
+  /graph/node/{id}/neighbors:
+    get:
+      summary: Adjacent nodes (for click-to-expand in the explorer)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: depth
+          schema: { type: integer, default: 1, maximum: 3 }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphPayload'
+
+  /graph/query/preset/{name}:
+    post:
+      summary: Run a named pre-built lineage query
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+            description: |
+              One of: lineage-upstream, lineage-downstream,
+              tableau-physical-tables, qlikview-chart-lineage,
+              tws-runtime-window.
+        - in: query
+          name: node_id
+          schema: { type: string }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphPayload'
+
+  /graph/query/cypher:
+    post:
+      summary: Read-only Cypher passthrough
+      description: |
+        Rejects any statement that contains CREATE / MERGE / DELETE / SET / REMOVE
+        / DROP / CALL apoc.* (the cypher_guard module enforces).
+        Power-user endpoint; also used by the NLP service.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cypher]
+              properties:
+                cypher: { type: string }
+                parameters:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/GraphPayload'
+                  - type: array
+                    items: { type: object }
+
+  /tws/jobs:
+    get:
+      summary: Postgres-backed TWS job search
+      description: |
+        Surfaces the v_runtime_window view from the TWS parser's Postgres mirror.
+      parameters:
+        - in: query
+          name: start_time
+          schema: { type: string, example: "05:30" }
+        - in: query
+          name: end_time
+          schema: { type: string, example: "06:30" }
+        - in: query
+          name: script_path_like
+          schema: { type: string }
+        - in: query
+          name: workstation
+          schema: { type: string }
+      responses:
+        '200':
+          description: ok
+
+components:
+  schemas:
+    GraphPayload:
+      type: object
+      description: Cytoscape-friendly graph payload
+      properties:
+        nodes:
+          type: array
+          items:
+            type: object
+            required: [data]
+            properties:
+              data:
+                type: object
+                required: [id, label]
+                properties:
+                  id: { type: string }
+                  label: { type: string }
+                  source_system: { type: string }
+                  properties:
+                    type: object
+                    additionalProperties: true
+        edges:
+          type: array
+          items:
+            type: object
+            required: [data]
+            properties:
+              data:
+                type: object
+                required: [id, source, target, label]
+                properties:
+                  id: { type: string }
+                  source: { type: string }
+                  target: { type: string }
+                  label: { type: string }
+                  properties:
+                    type: object
+                    additionalProperties: true

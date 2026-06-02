@@ -1,0 +1,32 @@
+// ======================================================
+// Fixture 06 — Variables + include directives
+// Tests:
+//   - SET / LET variable capture
+//   - $(varName) macro expansion before SQL parsing
+//   - $(Include=...) pre-processor (the modern syntax)
+//   - Legacy INCLUDE 'path' syntax
+// Plan §2.7. Currently variables and $() includes are unhandled.
+// ======================================================
+
+SET vReportingYear = 2025;
+SET vSchema        = PROD.SALES;
+LET vToday         = today();
+LET vYearStart     = date(makedate($(vReportingYear),1,1));
+
+$(Include=includes/common.qvs);
+
+ODBC CONNECT TO 'TERADATA_PROD';
+
+YearlyOrders:
+LOAD
+    OrderID,
+    OrderDate,
+    Amount,
+    '$(vReportingYear)' AS ReportYear;
+SQL SELECT
+    OrderID, OrderDate, Amount
+FROM $(vSchema).ORDERS
+WHERE YEAR(OrderDate) = $(vReportingYear);
+
+// Legacy include syntax — should still work
+INCLUDE 'includes/common.qvs';

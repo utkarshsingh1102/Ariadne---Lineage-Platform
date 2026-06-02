@@ -1,0 +1,4 @@
+// Connection definitions — included by fixture 08
+ODBC CONNECT TO 'TERADATA_PROD';
+OLEDB CONNECT TO [Provider=SQLOLEDB;Data Source=mssql-prod;Initial Catalog=Finance];
+LIB CONNECT TO 'TeradataProd';

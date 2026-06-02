@@ -1,0 +1,18 @@
+// ======================================================
+// Fixture 05 — File-based loads (CSV + TXT)
+// Each FROM file produces a :Table node with source_type='file'.
+// ======================================================
+
+Employees:
+LOAD
+    EmpID,
+    EmpName,
+    Department,
+    HireDate
+FROM 'C:\QlikData\employees.csv' (txt, codepage is 28591, embedded labels, delimiter is ',', msq);
+
+Departments:
+LOAD
+    DeptID,
+    DeptName
+FROM [lib://Data/departments.txt] (txt, embedded labels, delimiter is '\t');

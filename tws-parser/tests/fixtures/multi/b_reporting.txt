@@ -1,0 +1,41 @@
+# Fixture multi/b_reporting.txt — downstream reporting pipeline.
+# Shares with a_ingestion.txt: WORKSTATION ETL_AGENT_01, CALENDAR WORKDAYS.
+# REFRESH_REPORTS FOLLOWS file A's LOAD_FACTS — a cross-file FOLLOWS that
+# only resolves when both files are parsed together.
+
+CPUNAME ETL_AGENT_01
+  DESCRIPTION "Shared ETL agent"
+  OS UNIX
+  NODE etl01.bank.internal TCPADDR 31111
+  FOR MAESTRO
+    TYPE FTA
+END
+
+CPUNAME BI_AGENT_01
+  DESCRIPTION "BI-only agent — unique to this file"
+  OS UNIX
+  NODE bi01.bank.internal TCPADDR 31111
+END
+
+CALENDAR WORKDAYS "Business days"
+  01/05/2026 01/06/2026 01/07/2026 01/08/2026 01/09/2026
+
+PROMPT REPORT_SIGNOFF "Reports validated — release to BI?"
+
+SCHEDULE BI_AGENT_01#REPORTING
+  DESCRIPTION "Reporting refresh stream"
+  ON RUNCYCLE WD_CYCLE CALENDAR WORKDAYS
+  AT 0800
+  PRIORITY 40
+:
+  REFRESH_REPORTS
+    SCRIPTNAME "/apps/bi/refresh.sh"
+    STREAMLOGON bisvc
+    FOLLOWS ETL_AGENT_01#INGESTION.LOAD_FACTS
+    PROMPT REPORT_SIGNOFF
+
+  PUBLISH_DASHBOARDS
+    SCRIPTNAME "/apps/bi/publish.sh"
+    STREAMLOGON bisvc
+    FOLLOWS REFRESH_REPORTS
+END

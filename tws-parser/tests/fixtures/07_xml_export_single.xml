@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fixture 07 — XML export of a single schedule
+     Plan §2.2. Same data shape as fixture 02 (multi-job FOLLOWS),
+     in the XML format produced by `composer extract -xml`. -->
+<scheduleDefinitions>
+  <schedule>
+    <workstation>MASTER</workstation>
+    <name>DAILY_SALES_LOAD</name>
+    <validFrom>2025-01-01</validFrom>
+    <onRunCycle>EVERY_WEEKDAY</onRunCycle>
+    <startTime>05:30</startTime>
+    <endTime>09:00</endTime>
+    <carryForward>true</carryForward>
+    <priority>50</priority>
+    <jobs>
+      <job>
+        <name>EXTRACT_ORDERS</name>
+        <scriptName>/apps/abinitio/run.sh extract_orders.mp</scriptName>
+        <streamLogon>tws_user</streamLogon>
+        <description>Extract orders from source</description>
+        <recovery>STOP</recovery>
+      </job>
+      <job>
+        <name>TRANSFORM_ORDERS</name>
+        <scriptName>/apps/abinitio/run.sh transform_orders.mp</scriptName>
+        <streamLogon>tws_user</streamLogon>
+        <recovery>RERUN</recovery>
+        <follows>
+          <dependency><job>EXTRACT_ORDERS</job></dependency>
+        </follows>
+      </job>
+      <job>
+        <name>LOAD_ORDERS_TO_DW</name>
+        <scriptName>/apps/bteq/load_orders.bteq</scriptName>
+        <streamLogon>tws_user</streamLogon>
+        <recovery>CONTINUE</recovery>
+        <follows>
+          <dependency><job>TRANSFORM_ORDERS</job></dependency>
+        </follows>
+      </job>
+    </jobs>
+  </schedule>
+</scheduleDefinitions>

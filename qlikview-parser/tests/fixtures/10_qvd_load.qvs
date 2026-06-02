@@ -1,0 +1,22 @@
+// ======================================================
+// Fixture 10 — QVD file loads
+// Each QVD becomes a :Table with source_type='file' and the
+// .qvd path as fully_qualified_name.
+// ======================================================
+
+InventorySnapshot:
+LOAD
+    ProductID,
+    WarehouseID,
+    StockQty,
+    SnapshotDate
+FROM 'C:\QlikData\inventory_2025_05.qvd' (qvd);
+
+PriceHistory:
+LOAD *
+FROM [lib://QvdStore/price_history.qvd] (qvd);
+
+// Concatenate a second snapshot onto InventorySnapshot
+CONCATENATE (InventorySnapshot)
+LOAD ProductID, WarehouseID, StockQty, SnapshotDate
+FROM 'C:\QlikData\inventory_2025_04.qvd' (qvd);

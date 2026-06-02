@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fixture 08 — XML export equivalent to fixture 06 (kitchen sink).
+     Plan §10.5: both input paths must converge on the same ScheduleIR shape. -->
+<scheduleDefinitions>
+
+  <schedule>
+    <workstation>WS_PROD</workstation>
+    <name>NIGHTLY_INFRA_CHECK</name>
+    <validFrom>2025-01-01</validFrom>
+    <onRunCycle>EVERY_WEEKDAY</onRunCycle>
+    <startTime>02:00</startTime>
+    <endTime>05:00</endTime>
+    <carryForward>true</carryForward>
+    <priority>80</priority>
+    <jobs>
+      <job><name>CHECK_DISK</name>
+        <scriptName>/apps/ops/check_disk.sh</scriptName>
+        <streamLogon>ops_user</streamLogon><recovery>STOP</recovery></job>
+      <job><name>CHECK_NETWORK</name>
+        <scriptName>/apps/ops/check_network.sh</scriptName>
+        <streamLogon>ops_user</streamLogon><recovery>STOP</recovery>
+        <follows><dependency><job>CHECK_DISK</job></dependency></follows></job>
+      <job><name>CHECK_DB_HEALTH</name>
+        <scriptName>/apps/ops/check_db.sh prod</scriptName>
+        <streamLogon>ops_user</streamLogon><recovery>STOP</recovery>
+        <follows><dependency><job>CHECK_NETWORK</job></dependency></follows>
+        <needs><resource name="DB_HEALTH_CHECK_SLOT" quantity="1"/></needs></job>
+    </jobs>
+  </schedule>
+
+  <schedule>
+    <workstation>WS_PROD</workstation>
+    <name>DAILY_SALES_LOAD</name>
+    <validFrom>2025-01-01</validFrom>
+    <onRunCycle>EVERY_WEEKDAY</onRunCycle>
+    <startTime>05:30</startTime>
+    <endTime>09:00</endTime>
+    <carryForward>true</carryForward>
+    <priority>50</priority>
+    <follows>
+      <dependency><workstation>WS_PROD</workstation><schedule>NIGHTLY_INFRA_CHECK</schedule><wildcard>true</wildcard></dependency>
+    </follows>
+    <jobs>
+      <job><name>WAIT_SALES_FEED</name>
+        <scriptName>/apps/feeds/await.sh</scriptName>
+        <streamLogon>tws_user</streamLogon><recovery>STOP</recovery>
+        <opens><file path="/data/feeds/sales_YYYYMMDD.csv"/></opens></job>
+      <job><name>EXTRACT_ORDERS</name>
+        <scriptName>/apps/abinitio/run.sh extract_orders.mp</scriptName>
+        <streamLogon>tws_user</streamLogon><recovery>STOP</recovery>
+        <follows><dependency><job>WAIT_SALES_FEED</job></dependency></follows></job>
+      <job><name>LOAD_ORDERS_TO_DW</name>
+        <scriptName>/apps/bteq/load_orders.bteq</scriptName>
+        <streamLogon>tws_user</streamLogon><recovery>CONTINUE</recovery>
+        <follows><dependency><job>EXTRACT_ORDERS</job></dependency></follows>
+        <needs><resource name="DW_LOAD_SLOT" quantity="1"/></needs></job>
+    </jobs>
+  </schedule>
+
+  <schedule>
+    <workstation>WS_PROD</workstation>
+    <name>FINANCE_RECON</name>
+    <validFrom>2025-01-01</validFrom>
+    <onRunCycle>EVERY_WEEKDAY</onRunCycle>
+    <startTime>07:00</startTime>
+    <follows>
+      <dependency><workstation>WS_PROD</workstation><schedule>DAILY_SALES_LOAD</schedule><wildcard>true</wildcard></dependency>
+      <dependency><workstation>WS_FINANCE</workstation><schedule>GL_CLOSE</schedule><wildcard>true</wildcard></dependency>
+    </follows>
+    <jobs>
+      <job><name>RECON_GL_VS_SALES</name>
+        <scriptName>/apps/finance/recon.sh</scriptName>
+        <streamLogon>finance_user</streamLogon><recovery>STOP</recovery>
+        <needs><resource name="RECON_LOCK" quantity="1"/></needs></job>
+    </jobs>
+  </schedule>
+
+</scheduleDefinitions>

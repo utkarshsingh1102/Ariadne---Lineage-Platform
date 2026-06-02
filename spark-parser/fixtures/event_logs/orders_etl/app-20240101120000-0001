@@ -1,0 +1,8 @@
+{"Event":"org.apache.spark.sql.execution.ui.SparkListenerSQLExecutionStart","executionId":0,"description":"saveAsTable at orders_etl.py:24","sparkPlanInfo":{"nodeName":"WriteToDataSourceV2","children":[{"nodeName":"Project","children":[{"nodeName":"Filter","children":[{"nodeName":"FileScan parquet","children":[]}]}]}]}}
+{"Event":"SparkListenerJobStart","Job ID":0,"Stage Infos":[{"Stage ID":0,"Stage Name":"FileScan parquet","Number of Tasks":4,"Parent IDs":[]},{"Stage ID":1,"Stage Name":"Project","Number of Tasks":4,"Parent IDs":[0]}],"Properties":{"spark.sql.execution.id":"0"}}
+{"Event":"SparkListenerStageSubmitted","Stage Info":{"Stage ID":0,"Stage Name":"FileScan parquet","Number of Tasks":4,"Parent IDs":[]}}
+{"Event":"SparkListenerStageCompleted","Stage Info":{"Stage ID":0,"Completion Time":1700000060000}}
+{"Event":"SparkListenerStageSubmitted","Stage Info":{"Stage ID":1,"Stage Name":"Project","Number of Tasks":4,"Parent IDs":[0]}}
+{"Event":"SparkListenerStageCompleted","Stage Info":{"Stage ID":1,"Completion Time":1700000120000}}
+{"Event":"SparkListenerJobEnd","Job ID":0,"Completion Time":1700000125000}
+{"Event":"org.apache.spark.sql.execution.ui.SparkListenerSQLExecutionEnd","executionId":0,"time":1700000130000,"duration":130000,"physicalPlanDescription":"WriteToDataSourceV2 -> Project -> Filter -> FileScan parquet","rules":[{"ruleName":"PushDownPredicate","detail":"Filter pushed down into FileScan"},{"ruleName":"ColumnPruning","detail":"Pruned 5 of 8 columns"}]}

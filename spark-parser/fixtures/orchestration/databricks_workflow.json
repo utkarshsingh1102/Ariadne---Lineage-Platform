@@ -1,0 +1,35 @@
+{
+  "name": "orders_workflow",
+  "settings": {
+    "name": "orders_workflow",
+    "schedule": {
+      "quartz_cron_expression": "0 0 2 * * ?",
+      "timezone_id": "UTC"
+    },
+    "tasks": [
+      {
+        "task_key": "ingest",
+        "notebook_task": {
+          "notebook_path": "/Repos/team/ingest_orders",
+          "base_parameters": {"env": "prod"}
+        }
+      },
+      {
+        "task_key": "transform",
+        "spark_python_task": {
+          "python_file": "dbfs:/jobs/transform_orders.py",
+          "parameters": ["prod"]
+        },
+        "depends_on": [{"task_key": "ingest"}]
+      },
+      {
+        "task_key": "aggregate",
+        "spark_jar_task": {
+          "main_class_name": "com.team.AggregateOrders",
+          "jar_uri": "dbfs:/libs/agg.jar"
+        },
+        "depends_on": [{"task_key": "transform"}]
+      }
+    ]
+  }
+}

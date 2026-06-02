@@ -1,0 +1,221 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<!-- 09_full_reference.twb — exercises every element family the parser
+     supports as of plan §1-§8. Used by tests/integration/test_coverage.py
+     to assert the "zero unmapped_element warnings" invariant. -->
+<workbook version='18.1'>
+  <datasources>
+
+    <!-- Parameters datasource -->
+    <datasource name='Parameters' caption='Parameters'>
+      <column name='[Region Filter]' caption='Region Filter' datatype='string'
+              role='dimension' param-domain-type='list' value='East' default-aggregation='none' />
+      <column name='[Min Sales]' caption='Min Sales' datatype='real'
+              role='measure' param-domain-type='range' value='100' />
+    </datasource>
+
+    <!-- Sales datasource: postgres connection, 3-table join (orders, customers, products),
+         physical columns + 3 calc fields (one LOD, one calc-on-calc, one cross-source-aware),
+         a group, a set, a bin, a hierarchy, value aliases, a datasource-level filter,
+         and an extract flag. -->
+    <datasource name='sales_ds' caption='Sales' hasextract='false'>
+      <connection class='federated'>
+        <named-connections>
+          <named-connection name='sales_pg'>
+            <connection class='postgres' server='warehouse.example.com' port='5432'
+                        dbname='sales' schema='public' username='analytics' />
+          </named-connection>
+        </named-connections>
+        <relation type='join' join='left'>
+          <clause type='join'>
+            <expression op='='>
+              <expression op='[orders].[customer_id]' />
+              <expression op='[customers].[id]' />
+            </expression>
+          </clause>
+          <relation type='join' join='inner'>
+            <clause type='join'>
+              <expression op='='>
+                <expression op='[orders].[product_id]' />
+                <expression op='[products].[id]' />
+              </expression>
+            </clause>
+            <relation type='table' name='orders' table='[public].[orders]' />
+            <relation type='table' name='products' table='[public].[products]' />
+          </relation>
+          <relation type='table' name='customers' table='[public].[customers]' />
+        </relation>
+      </connection>
+
+      <!-- Physical columns -->
+      <column name='[order_id]' datatype='integer' role='dimension'
+              default-aggregation='count' ordinal='0' />
+      <column name='[customer_id]' datatype='integer' role='dimension' ordinal='1' />
+      <column name='[product_id]' datatype='integer' role='dimension' ordinal='2' />
+      <column name='[order_amount]' datatype='real' role='measure'
+              default-aggregation='sum' precision='12' scale='2' />
+      <column name='[order_date]' datatype='date' role='dimension'
+              contains-null='false' />
+      <column name='[region]' datatype='string' role='dimension'>
+        <aliases>
+          <alias key='E' value='East' />
+          <alias key='W' value='West' />
+          <alias key='N' value='North' />
+          <alias key='S' value='South' />
+        </aliases>
+      </column>
+      <column name='[customer_segment]' datatype='string' role='dimension' />
+      <column name='[product_name]' datatype='string' role='dimension' />
+      <column name='[category]' datatype='string' role='dimension' />
+      <column name='[unit_cost]' datatype='real' role='measure'
+              default-aggregation='avg' />
+
+      <!-- Calc fields -->
+      <column caption='Profit' name='[Profit]' datatype='real' role='measure'
+              default-aggregation='sum'>
+        <calculation class='tableau' formula='[order_amount] - [unit_cost]' />
+      </column>
+      <column caption='Profit Ratio' name='[ProfitRatio]' datatype='real' role='measure'>
+        <calculation class='tableau' formula='[Profit] / [order_amount]' />
+      </column>
+      <column caption='Avg Sales by Region' name='[AvgSalesByRegion]'
+              datatype='real' role='measure'>
+        <calculation class='tableau'
+                     formula='{FIXED [region]: AVG([order_amount])}' />
+      </column>
+
+      <!-- Group: city → region bucket -->
+      <group name='[Region Bucket]' column='[region]'>
+        <bucket name='Coastal'>
+          <member value='East' />
+          <member value='West' />
+        </bucket>
+        <bucket name='Inland'>
+          <member value='North' />
+          <member value='South' />
+        </bucket>
+      </group>
+
+      <!-- Set: top customers -->
+      <set name='[Top Customers]' column='[customer_id]'
+           expression='SUM([order_amount]) > [Min Sales]' />
+
+      <!-- Bin: binned sales -->
+      <column name='[order_amount (bin)]' caption='Order Amount bin'
+              datatype='real' role='dimension'>
+        <bin column='[order_amount]' size='100' />
+      </column>
+
+      <!-- Hierarchy: geography drill-down -->
+      <drill-path name='[Geography]'>
+        <field>[region]</field>
+        <field>[customer_segment]</field>
+      </drill-path>
+
+      <!-- Datasource-level filter -->
+      <filter class='categorical' column='[sales_ds].[region]'>
+        <groupfilter function='member'>
+          <member value='East' />
+        </groupfilter>
+      </filter>
+    </datasource>
+
+    <!-- Quotas datasource: excel connection, single table, cross-source ref target. -->
+    <datasource name='quotas_ds' caption='Quotas' hasextract='true'>
+      <connection class='excel-direct' server='quotas.xlsx' dbname='quotas.xlsx'>
+        <relation name='Quotas' table='[Quotas$]' type='table' />
+      </connection>
+      <column name='[quota_region]' datatype='string' role='dimension' />
+      <column name='[target_amount]' datatype='real' role='measure'
+              default-aggregation='sum' />
+      <!-- Cross-source calc: references sales_ds field by two-part path -->
+      <column caption='Target Attainment' name='[TargetAttainment]'
+              datatype='real' role='measure'>
+        <calculation class='tableau'
+                     formula='[sales_ds].[Profit] / [target_amount]' />
+      </column>
+    </datasource>
+
+  </datasources>
+
+  <worksheets>
+
+    <worksheet name='Sales by Region'>
+      <table>
+        <view>
+          <datasource-dependencies datasource='sales_ds'>
+            <column name='[region]' />
+            <column name='[order_amount]' />
+          </datasource-dependencies>
+          <rows>[sales_ds].[region]</rows>
+          <cols>SUM([sales_ds].[order_amount])</cols>
+          <color>[sales_ds].[region]</color>
+        </view>
+        <filter class='categorical' column='[sales_ds].[region]'>
+          <groupfilter function='member'>
+            <member value='East' />
+          </groupfilter>
+        </filter>
+        <sort column='[sales_ds].[order_amount]' direction='descending' />
+      </table>
+    </worksheet>
+
+    <worksheet name='Top Customers'>
+      <table>
+        <view>
+          <datasource-dependencies datasource='sales_ds'>
+            <column name='[customer_id]' />
+            <column name='[Profit]' />
+          </datasource-dependencies>
+          <rows>[sales_ds].[customer_id]</rows>
+          <cols>SUM([sales_ds].[Profit])</cols>
+        </view>
+        <sort column='[sales_ds].[Profit]' direction='descending' />
+      </table>
+    </worksheet>
+
+    <worksheet name='Target Attainment'>
+      <table>
+        <view>
+          <datasource-dependencies datasource='quotas_ds'>
+            <column name='[quota_region]' />
+            <column name='[TargetAttainment]' />
+          </datasource-dependencies>
+          <rows>[quotas_ds].[quota_region]</rows>
+          <cols>AVG([quotas_ds].[TargetAttainment])</cols>
+        </view>
+      </table>
+    </worksheet>
+
+  </worksheets>
+
+  <dashboards>
+
+    <dashboard name='Executive Overview'>
+      <zones>
+        <zone type='worksheet' name='Sales by Region' />
+        <zone type='worksheet' name='Top Customers' />
+        <zone type='worksheet' name='Target Attainment' />
+        <zone type='filter' name='Region Filter Zone' />
+        <zone type='parameter' name='Region Filter Control'
+              param='[Parameters].[Region Filter]' />
+        <zone type='text' name='Header' />
+      </zones>
+      <actions>
+        <action class='filter' name='Region Cross-Filter'
+                source-sheets='[Sales by Region]'
+                target-sheets='[Top Customers],[Target Attainment]'
+                fields='[region]' />
+        <action class='set-parameter' name='Sync Region'
+                source-sheets='[Sales by Region]'
+                parameter='[Region Filter]' />
+      </actions>
+    </dashboard>
+
+    <dashboard name='Customer Detail'>
+      <zones>
+        <zone type='worksheet' name='Top Customers' />
+      </zones>
+    </dashboard>
+
+  </dashboards>
+</workbook>

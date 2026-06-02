@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+  Fixture 02 — Calculated fields
+  Plan §2.3 (quirks) + §6 step 4 (calculation dependency resolution).
+  Asserts DERIVES_FROM edges between calculated and source columns.
+-->
+<workbook version='2024.1' source-platform='mac'>
+  <datasources>
+    <datasource caption='Orders' name='orders_ds' inline='true'>
+      <connection class='teradata' server='td-prod' dbname='PROD' schema='SALES'/>
+      <relation name='Orders' table='[SALES].[Orders]' type='table'/>
+
+      <!-- Physical columns -->
+      <column datatype='integer' name='[OrderID]' role='dimension' type='ordinal'/>
+      <column datatype='integer' name='[CustomerID]' role='dimension' type='ordinal'/>
+      <column datatype='real'    name='[Amount]' role='measure' type='quantitative'/>
+      <column datatype='date'    name='[OrderDate]' role='dimension' type='ordinal'/>
+
+      <!-- Simple calc: AmountWithTax = [Amount] * 1.18 -->
+      <column datatype='real' name='[AmountWithTax]' role='measure' type='quantitative'>
+        <calculation class='tableau' formula='[Amount] * 1.18'/>
+      </column>
+
+      <!-- Nested calc: Profit = [AmountWithTax] - [Amount] -->
+      <column datatype='real' name='[Profit]' role='measure' type='quantitative'>
+        <calculation class='tableau' formula='[AmountWithTax] - [Amount]'/>
+      </column>
+
+      <!-- LOD: TotalPerCustomer = {FIXED [CustomerID] : SUM([Amount])} -->
+      <column datatype='real' name='[TotalPerCustomer]' role='measure' type='quantitative'>
+        <calculation class='tableau' formula='{FIXED [CustomerID] : SUM([Amount])}'/>
+      </column>
+
+      <!-- CASE WHEN — multiple field refs -->
+      <column datatype='string' name='[OrderTier]' role='dimension' type='nominal'>
+        <calculation class='tableau' formula="IF [Amount] &gt; 1000 THEN 'High' ELSEIF [Amount] &gt; 100 THEN 'Mid' ELSE 'Low' END"/>
+      </column>
+    </datasource>
+  </datasources>
+  <worksheets/>
+  <dashboards/>
+</workbook>

@@ -1,0 +1,37 @@
+# Fixture multi/a_ingestion.txt — ingestion pipeline.
+# Shares with b_reporting.txt: WORKSTATION ETL_AGENT_01, CALENDAR WORKDAYS.
+# Defines INGESTION.LOAD_FACTS that b_reporting's REFRESH_REPORTS depends on.
+
+CPUNAME ETL_AGENT_01
+  DESCRIPTION "Shared ETL agent"
+  OS UNIX
+  NODE etl01.bank.internal TCPADDR 31111
+  FOR MAESTRO
+    TYPE FTA
+END
+
+CALENDAR WORKDAYS "Business days"
+  01/05/2026 01/06/2026 01/07/2026 01/08/2026 01/09/2026
+
+RESOURCE ETL_AGENT_01#DB_CONN_POOL 8 "Database connection pool"
+
+PROMPT INGESTION_SIGNOFF "Ingestion complete — proceed?"
+
+SCHEDULE ETL_AGENT_01#INGESTION
+  DESCRIPTION "Daily ingestion stream"
+  ON RUNCYCLE WD_CYCLE CALENDAR WORKDAYS
+  AT 0500
+  PRIORITY 50
+:
+  EXTRACT_SOURCE
+    SCRIPTNAME "/apps/etl/extract.sh"
+    STREAMLOGON etlsvc
+    DESCRIPTION "Pull source feeds"
+
+  LOAD_FACTS
+    SCRIPTNAME "/apps/etl/load_facts.sh"
+    STREAMLOGON etlsvc
+    FOLLOWS EXTRACT_SOURCE
+    NEEDS 2 ETL_AGENT_01#DB_CONN_POOL
+    PROMPT INGESTION_SIGNOFF
+END

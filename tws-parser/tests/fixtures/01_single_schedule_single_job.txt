@@ -1,0 +1,13 @@
+# Fixture 01 — Easiest case
+# One schedule, one job, no dependencies.
+# Plan §2.1.
+
+SCHEDULE WORKSTATION_A#MASTER#SIMPLE_LOAD
+  ON RUNCYCLE EVERY_WEEKDAY VALIDFROM 01/01/2025
+  AT 0530
+:
+  EXTRACT_DATA
+    SCRIPTNAME "/apps/abinitio/run.sh extract.mp"
+    STREAMLOGON tws_user
+    RECOVERY STOP
+END

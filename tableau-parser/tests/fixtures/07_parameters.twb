@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+  Fixture 07 — Workbook parameters
+  Plan §6 step 8: the "Parameters" datasource is skipped for lineage but
+  emitted as :Parameter nodes attached to the workbook.
+-->
+<workbook version='2024.1' source-platform='mac'>
+  <datasources>
+    <datasource caption='Parameters' name='Parameters'>
+      <column datatype='integer' name='[Param.ReportingYear]' role='measure' value='2025'/>
+      <column datatype='string'  name='[Param.Region]'         role='dimension' value='EMEA'/>
+      <column datatype='boolean' name='[Param.IncludeTax]'     role='measure' value='true'/>
+    </datasource>
+    <datasource caption='Sales' name='sales_ds' inline='true'>
+      <connection class='teradata' server='td-prod' dbname='PROD' schema='SALES'/>
+      <relation name='Orders' table='[SALES].[Orders]' type='table'/>
+      <column datatype='integer' name='[OrderID]' role='dimension'/>
+      <column datatype='real'    name='[Amount]' role='measure'/>
+    </datasource>
+  </datasources>
+  <worksheets/>
+  <dashboards/>
+</workbook>

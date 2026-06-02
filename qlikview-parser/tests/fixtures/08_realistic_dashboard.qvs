@@ -1,0 +1,141 @@
+// ======================================================
+// Fixture 08 — Realistic kitchen-sink dashboard
+// Exercises every construct simultaneously:
+//   - SET / LET variables with macro substitution
+//   - $(Include=...) and legacy INCLUDE
+//   - ODBC + OLEDB + LIB CONNECT TO
+//   - Preceding LOAD chains with column transforms
+//   - SQL SELECT with vendor-specific (Teradata) clauses
+//   - RESIDENT, JOIN (explicit + implicit), CONCATENATE, KEEP
+//   - MAPPING LOAD + APPLYMAP
+//   - QVD load
+//   - SUB / CALL
+//   - Drop Table, Drop Field
+//   - LOAD * RESIDENT (star-field resolution)
+//   - Comments of every flavour
+// ======================================================
+
+/* ----------------------------------------------------------------
+   Variables
+   ---------------------------------------------------------------- */
+SET vSchema        = PROD.SALES;
+SET vReportingYear = 2025;
+LET vCutoff        = date(today() - 30);
+
+REM Switch this flag to rebuild the QVD cache from scratch ;
+
+/* ----------------------------------------------------------------
+   Includes
+   ---------------------------------------------------------------- */
+$(Include=includes/connections.qvs);
+$(Must_Include=includes/common.qvs);
+
+/* ----------------------------------------------------------------
+   Connections (overrides the include if needed)
+   ---------------------------------------------------------------- */
+ODBC  CONNECT TO 'TERADATA_PROD';
+OLEDB CONNECT TO [Provider=SQLOLEDB;Data Source=mssql-prod;Initial Catalog=Finance];
+LIB   CONNECT TO 'TeradataProd';
+
+/* ----------------------------------------------------------------
+   Mapping table (used later via ApplyMap)
+   ---------------------------------------------------------------- */
+RegionMap:
+MAPPING LOAD
+    CountryCode,
+    RegionName
+FROM 'C:\QlikData\region_map.csv' (txt, embedded labels, delimiter is ',');
+
+/* ----------------------------------------------------------------
+   Customer dimension — preceding LOAD with transforms
+   ---------------------------------------------------------------- */
+Customer:
+LOAD
+    CustomerID,
+    CustomerName,
+    UPPER(CustomerName)              AS CustomerName_Upper,
+    ApplyMap('RegionMap', CountryCode, 'Unknown') AS Region,
+    CountryCode,
+    IF(Status = 'A', 'Active', 'Inactive')         AS CustomerStatus
+;
+SQL SELECT
+    CustomerID, CustomerName, CountryCode, Status
+FROM $(vSchema).CUSTOMER
+WHERE CreatedDate >= '$(vCutoff)';
+
+/* ----------------------------------------------------------------
+   Orders fact — vendor-specific QUALIFY clause (Teradata)
+   ---------------------------------------------------------------- */
+Orders:
+LOAD
+    OrderID,
+    CustomerID,
+    OrderDate,
+    Amount,
+    Amount * 1.18 AS AmountWithTax
+;
+SQL SELECT
+    OrderID, CustomerID, OrderDate, Amount,
+    ROW_NUMBER() OVER (PARTITION BY CustomerID ORDER BY OrderDate DESC) AS rn
+FROM $(vSchema).ORDERS
+QUALIFY rn = 1;
+
+/* ----------------------------------------------------------------
+   In-memory derivation
+   ---------------------------------------------------------------- */
+OrdersByCustomer:
+LOAD
+    CustomerID,
+    SUM(Amount)        AS TotalAmount,
+    COUNT(OrderID)     AS OrderCount,
+    AVG(AmountWithTax) AS AvgTaxedAmount
+RESIDENT Orders
+GROUP BY CustomerID;
+
+/* ----------------------------------------------------------------
+   JOINs — implicit target (attaches to OrdersByCustomer)
+   ---------------------------------------------------------------- */
+LEFT JOIN LOAD
+    CustomerID, CustomerName, Region
+RESIDENT Customer;
+
+/* ----------------------------------------------------------------
+   CONCATENATE legacy historical data
+   ---------------------------------------------------------------- */
+CONCATENATE (Orders) LOAD
+    OrderID, CustomerID, OrderDate, Amount, Amount * 1.0 AS AmountWithTax
+FROM 'C:\QlikData\orders_archive.qvd' (qvd);
+
+/* ----------------------------------------------------------------
+   KEEP (filters Customer to only rows that have matching Orders)
+   ---------------------------------------------------------------- */
+INNER KEEP (Customer) LOAD
+    DISTINCT CustomerID
+RESIDENT Orders;
+
+/* ----------------------------------------------------------------
+   Subroutine — dimension loader
+   ---------------------------------------------------------------- */
+SUB LoadDimension(DimName, FQSource)
+   [$(DimName)]:
+   LOAD * ;
+   SQL SELECT * FROM $(FQSource);
+END SUB
+
+CALL LoadDimension('Product',  '$(vSchema).PRODUCT');
+CALL LoadDimension('Calendar', 'PROD.SHARED.CALENDAR');
+
+/* ----------------------------------------------------------------
+   Star-field RESIDENT
+   ---------------------------------------------------------------- */
+OrdersCopy:
+LOAD * RESIDENT Orders;
+
+/* ----------------------------------------------------------------
+   Cleanup
+   ---------------------------------------------------------------- */
+DROP FIELD rn FROM Orders;
+DROP TABLE RegionMap;
+
+// Legacy include syntax still tolerated
+INCLUDE 'includes/common.qvs';

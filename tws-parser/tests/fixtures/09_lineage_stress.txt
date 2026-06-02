@@ -1,0 +1,289 @@
+#-----------------------------------------------------------------------------
+# TWS / IBM WORKLOAD SCHEDULER - LINEAGE PARSER STRESS TEST
+# Format: composer (text) definition language
+#
+# Deliberately exercises the scheduler-parsing edges a naive parser misses:
+#   - multiple job streams across multiple workstations
+#   - internal FOLLOWS (same stream) vs external/qualified FOLLOWS
+#       (workstation#stream.job) -- the name-collision / qualification trap
+#   - conditional dependencies: IF SUCC / IF ABEND / IF RC expressions
+#   - join dependencies (a job following several predecessors)
+#   - RESOURCE (semaphore) and PROMPT (manual gate) dependencies
+#   - OPENS file dependencies (dataset touchpoints)
+#   - RECOVERY options (stop / continue / rerun + recovery job)
+#   - run cycles / calendars / time restrictions (AT, UNTIL, DEADLINE)
+#   - EVERY (rerun cadence), PRIORITY, LIMIT
+#   - duplicate job names ACROSS streams (must NOT be merged)
+#   - cross-stream FOLLOWS into a job stream on a different workstation
+#   - event-driven trigger (EDWA-style) reference
+#   - jobs whose scripts invoke downstream tools (ksh -> spark-submit, ab initio)
+#   - comments, blank lines, continuation, mixed case keywords
+#-----------------------------------------------------------------------------
+
+
+#=============================================================================
+# WORKSTATION DEFINITIONS
+#=============================================================================
+CPUNAME ETL_AGENT_01
+  DESCRIPTION "Primary ETL fault-tolerant agent"
+  OS UNIX
+  NODE etl01.bank.internal TCPADDR 31111
+  FOR MAESTRO
+    TYPE FTA
+    AUTOLINK ON
+    BEHINDFIREWALL OFF
+END
+
+CPUNAME ETL_AGENT_02
+  DESCRIPTION "Secondary ETL agent - Spark submit host"
+  OS UNIX
+  NODE etl02.bank.internal TCPADDR 31111
+  FOR MAESTRO
+    TYPE FTA
+    AUTOLINK ON
+END
+
+CPUNAME DB_AGENT_01
+  DESCRIPTION "Database / warehouse agent"
+  OS UNIX
+  NODE db01.bank.internal TCPADDR 31111
+  FOR MAESTRO
+    TYPE FTA
+END
+
+CPUNAME MASTER_DM
+  DESCRIPTION "Master domain manager"
+  OS UNIX
+  NODE mdm.bank.internal TCPADDR 31111
+  FOR MAESTRO
+    TYPE MANAGER
+END
+
+
+#=============================================================================
+# CALENDAR DEFINITIONS
+#=============================================================================
+CALENDAR BANK_WORKDAYS
+  "Business days excluding bank holidays"
+  01/02/2026 01/05/2026 01/06/2026 01/07/2026 01/08/2026
+  01/09/2026 01/12/2026 01/13/2026 01/14/2026
+
+CALENDAR MONTH_END
+  "Month-end processing dates"
+  01/31/2026 02/28/2026 03/31/2026 04/30/2026
+
+
+#=============================================================================
+# RESOURCE DEFINITIONS (semaphores)
+#=============================================================================
+RESOURCE ETL_AGENT_01#DB_CONN_POOL 10
+  "Concurrent warehouse connections"
+
+RESOURCE ETL_AGENT_02#SPARK_SLOTS 4
+  "Available Spark executor slots"
+
+RESOURCE DB_AGENT_01#REDSHIFT_LOAD_LOCK 1
+  "Exclusive lock for Redshift bulk load"
+
+
+#=============================================================================
+# PROMPT DEFINITIONS (manual gates)
+#=============================================================================
+PROMPT RECON_SIGNOFF
+  "Operations: confirm overnight recon balanced? (Y to release)"
+
+PROMPT DR_FAILOVER_OK
+  ":Proceed with DR-region failover load? Requires duty manager approval."
+
+
+#=============================================================================
+# JOB STREAM 1 : INGESTION  (runs on ETL_AGENT_01)
+#   Contains the chained ingestion pipeline + a job named "VALIDATE"
+#   NOTE: a different job ALSO named "VALIDATE" exists in stream RECONCILE.
+#         The parser MUST keep them distinct by qualified name.
+#=============================================================================
+SCHEDULE ETL_AGENT_01#INGESTION
+  DESCRIPTION "Nightly source ingestion pipeline"
+  ON RUNCYCLE DAILY_RC VALIDFROM 01/01/2026 "FREQ=DAILY;INTERVAL=1"
+  ON RUNCYCLE WORKDAY_RC CALENDAR BANK_WORKDAYS
+  EXCEPT RUNCYCLE HOLIDAY_EXC "FREQ=YEARLY;BYMONTH=12;BYMONTHDAY=25"
+  AT 0100
+  UNTIL 0500 ONUNTIL CANC
+  PRIORITY 50
+  LIMIT 5
+  CARRYFORWARD
+  :
+  #-- pull from source systems
+  ETL_AGENT_01#EXTRACT_ORDERS
+    SCRIPTNAME "/opt/etl/bin/extract_orders.ksh"
+    STREAMLOGON etluser
+    DESCRIPTION "Extract orders from OLTP into landing"
+    RECOVERY STOP
+    OPENS ETL_AGENT_01#"/data/landing/orders_ready.flag"
+    AT 0105
+  ETL_AGENT_01#EXTRACT_CUSTOMERS
+    SCRIPTNAME "/opt/etl/bin/extract_customers.ksh"
+    STREAMLOGON etluser
+    DESCRIPTION "Extract customers from CRM"
+    RECOVERY CONTINUE
+  #-- transform: needs BOTH extracts (join dependency) + a resource
+  ETL_AGENT_01#TRANSFORM_LANDING
+    SCRIPTNAME "/opt/etl/bin/transform.ksh"
+    STREAMLOGON etluser
+    DESCRIPTION "Normalize landing tables - invokes spark-submit"
+    FOLLOWS EXTRACT_ORDERS IF SUCC
+    FOLLOWS EXTRACT_CUSTOMERS IF SUCC
+    NEEDS 1 ETL_AGENT_01#DB_CONN_POOL
+    PRIORITY 60
+    RECOVERY RERUN AFTER ETL_AGENT_01#CLEANUP_LANDING
+  #-- conditional branch on a specific return code
+  ETL_AGENT_01#QUALITY_GATE
+    SCRIPTNAME "/opt/etl/bin/dq_check.ksh"
+    STREAMLOGON etluser
+    DESCRIPTION "Data quality gate; RC 0=ok 4=warn 8=fail"
+    FOLLOWS TRANSFORM_LANDING IF RC=0
+  ETL_AGENT_01#QUALITY_QUARANTINE
+    SCRIPTNAME "/opt/etl/bin/quarantine.ksh"
+    STREAMLOGON etluser
+    DESCRIPTION "Quarantine bad records on DQ warn"
+    FOLLOWS TRANSFORM_LANDING IF RC=4
+  ETL_AGENT_01#CLEANUP_LANDING
+    SCRIPTNAME "/opt/etl/bin/cleanup.ksh"
+    STREAMLOGON etluser
+    DESCRIPTION "Recovery cleanup job (referenced by RECOVERY above)"
+  #-- internal validate (collides by short name with RECONCILE.VALIDATE)
+  ETL_AGENT_01#VALIDATE
+    SCRIPTNAME "/opt/etl/bin/validate_ingest.ksh"
+    STREAMLOGON etluser
+    DESCRIPTION "Validate ingestion row counts"
+    FOLLOWS QUALITY_GATE IF SUCC
+    EVERY 0030
+END
+
+#=============================================================================
+# JOB STREAM 2 : TRANSFORM_SPARK  (runs on ETL_AGENT_02)
+#   Cross-stream + cross-workstation FOLLOWS into INGESTION above.
+#   Demonstrates qualified external dependency: workstation#stream.job
+#=============================================================================
+SCHEDULE ETL_AGENT_02#TRANSFORM_SPARK
+  DESCRIPTION "Spark aggregation layer"
+  ON RUNCYCLE DAILY_RC "FREQ=DAILY;INTERVAL=1"
+  AT 0200
+  DEADLINE 0600
+  PRIORITY 55
+  :
+  ETL_AGENT_02#SPARK_AGGREGATE
+    SCRIPTNAME "/opt/spark/submit_aggregate.sh"
+    STREAMLOGON sparkuser
+    DESCRIPTION "spark-submit daily aggregation; writes analytics.daily_summary"
+    #-- external dependency: must wait for INGESTION.VALIDATE on the OTHER agent
+    FOLLOWS ETL_AGENT_01#INGESTION.VALIDATE IF SUCC
+    NEEDS 2 ETL_AGENT_02#SPARK_SLOTS
+    OPENS ETL_AGENT_01#"/data/landing/orders_ready.flag"
+    RECOVERY CONTINUE
+  ETL_AGENT_02#SPARK_ENRICH
+    SCRIPTNAME "/opt/spark/submit_enrich.sh"
+    STREAMLOGON sparkuser
+    DESCRIPTION "Enrichment join against reference data"
+    FOLLOWS SPARK_AGGREGATE IF SUCC
+    NEEDS 2 ETL_AGENT_02#SPARK_SLOTS
+END
+
+#=============================================================================
+# JOB STREAM 3 : WAREHOUSE_LOAD  (runs on DB_AGENT_01)
+#   Join dependency from a DIFFERENT stream + exclusive resource + prompt
+#=============================================================================
+SCHEDULE DB_AGENT_01#WAREHOUSE_LOAD
+  DESCRIPTION "Load aggregates into Redshift/warehouse"
+  ON RUNCYCLE DAILY_RC "FREQ=DAILY;INTERVAL=1"
+  AT 0300
+  PRIORITY 45
+  :
+  DB_AGENT_01#LOAD_DIM
+    SCRIPTNAME "/opt/dwh/load_dimensions.ksh"
+    STREAMLOGON dwhuser
+    DESCRIPTION "Load dimension tables first"
+    FOLLOWS ETL_AGENT_02#TRANSFORM_SPARK.SPARK_ENRICH IF SUCC
+    NEEDS 1 DB_AGENT_01#REDSHIFT_LOAD_LOCK
+  DB_AGENT_01#LOAD_FACT
+    SCRIPTNAME "/opt/dwh/load_facts.ksh"
+    STREAMLOGON dwhuser
+    DESCRIPTION "Load fact tables after dims"
+    FOLLOWS LOAD_DIM IF SUCC
+    NEEDS 1 DB_AGENT_01#REDSHIFT_LOAD_LOCK
+    PROMPT RECON_SIGNOFF
+    RECOVERY STOP AFTER DB_AGENT_01#LOAD_ROLLBACK
+  DB_AGENT_01#LOAD_ROLLBACK
+    SCRIPTNAME "/opt/dwh/rollback_load.ksh"
+    STREAMLOGON dwhuser
+    DESCRIPTION "Rollback recovery job"
+  DB_AGENT_01#REFRESH_VIEWS
+    SCRIPTNAME "/opt/dwh/refresh_matviews.ksh"
+    STREAMLOGON dwhuser
+    DESCRIPTION "Refresh materialized views; tolerate dim OR fact path"
+    FOLLOWS LOAD_FACT IF SUCC
+    FOLLOWS LOAD_DIM IF ABEND
+END
+
+#=============================================================================
+# JOB STREAM 4 : RECONCILE  (runs on DB_AGENT_01, month-end only)
+#   Contains a SECOND job named VALIDATE (collision test).
+#   Manual prompt gate + month-end run cycle + event trigger reference.
+#=============================================================================
+SCHEDULE DB_AGENT_01#RECONCILE
+  DESCRIPTION "Month-end reconciliation"
+  ON RUNCYCLE MONTHEND_RC CALENDAR MONTH_END
+  AT 0400
+  UNTIL 0800
+  PRIORITY 70
+  :
+  DB_AGENT_01#RECON_PREP
+    SCRIPTNAME "/opt/recon/prep.ksh"
+    STREAMLOGON reconuser
+    DESCRIPTION "Stage reconciliation inputs"
+    FOLLOWS DB_AGENT_01#WAREHOUSE_LOAD.REFRESH_VIEWS IF SUCC
+  #-- SECOND job named VALIDATE: must stay distinct from INGESTION.VALIDATE
+  DB_AGENT_01#VALIDATE
+    SCRIPTNAME "/opt/recon/validate_balances.ksh"
+    STREAMLOGON reconuser
+    DESCRIPTION "Validate GL balances reconcile to source"
+    FOLLOWS RECON_PREP IF SUCC
+    PROMPT RECON_SIGNOFF
+  DB_AGENT_01#RECON_REPORT
+    SCRIPTNAME "/opt/recon/report.ksh"
+    STREAMLOGON reconuser
+    DESCRIPTION "Emit recon report; gated on manual signoff"
+    FOLLOWS VALIDATE IF SUCC
+    PROMPT DR_FAILOVER_OK
+END
+
+#=============================================================================
+# JOB STREAM 5 : DR_FAILOVER  (event-driven, no run cycle)
+#   Triggered by an event rule rather than a calendar. Cross-everything deps.
+#=============================================================================
+SCHEDULE MASTER_DM#DR_FAILOVER
+  DESCRIPTION "Disaster-recovery region load, event triggered"
+  PRIORITY 90
+  :
+  MASTER_DM#DR_REPLICATE
+    SCRIPTNAME "/opt/dr/replicate.ksh"
+    STREAMLOGON druser
+    DESCRIPTION "Replicate latest warehouse snapshot to DR region"
+    FOLLOWS DB_AGENT_01#WAREHOUSE_LOAD.REFRESH_VIEWS IF SUCC
+    PROMPT DR_FAILOVER_OK
+    RECOVERY RERUN
+END
+
+#=============================================================================
+# EVENT RULE (EDWA-style) : triggers DR_FAILOVER on a file arrival
+#=============================================================================
+EVENTRULE DR_TRIGGER_RULE
+  DESCRIPTION "Launch DR failover when trigger file lands"
+  IS ACTIVE
+  EVENTRULETYPE filter
+  EVENT FileCreated
+    NODE mdm.bank.internal
+    FILENAME "/data/dr/trigger_failover.flag"
+  ACTION SBS
+    JOBSTREAM MASTER_DM#DR_FAILOVER
+END

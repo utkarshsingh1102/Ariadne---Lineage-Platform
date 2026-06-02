@@ -1,0 +1,145 @@
+openapi: 3.1.0
+info:
+  title: Lineage Parser — Common API
+  version: 0.1.0
+  description: |
+    Common HTTP contract exposed by every lineage parser
+    (tableau, tws, qlikview, and the externally-built abinitio/teradata/sas parsers).
+
+    Per-parser request schemas live in each parser's own OpenAPI doc. The
+    response envelope, /health, /version, and /metrics are shared exactly.
+
+paths:
+  /parse:
+    post:
+      summary: Parse one input file
+      description: |
+        Each parser defines its own request body (extending ParseRequestBase).
+        The response envelope is uniform across parsers.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParseRequestBase'
+      responses:
+        '200':
+          description: Parse completed (may include warnings)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParseResponse'
+        '400':
+          description: Bad request (invalid path, oversize, unsupported format)
+        '500':
+          description: Parser or downstream-store failure
+
+  /parse/batch:
+    post:
+      summary: Parse an array of inputs sequentially
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/ParseRequestBase'
+      responses:
+        '200':
+          description: All inputs processed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ParseResponse'
+
+  /health:
+    get:
+      summary: Service liveness + downstream-store connectivity
+      responses:
+        '200':
+          description: All checks passed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, enum: [ok, degraded] }
+                  neo4j: { type: string, enum: [connected, unreachable] }
+                  postgres: { type: string, enum: [connected, unreachable, not_applicable] }
+
+  /version:
+    get:
+      summary: Parser and contract version
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [parser, parser_version, contract_version]
+                properties:
+                  parser: { type: string, example: "tableau-parser" }
+                  parser_version: { type: string, example: "0.1.0" }
+                  contract_version: { type: string, example: "0.1.0" }
+
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      responses:
+        '200':
+          description: Prometheus text exposition
+          content:
+            text/plain:
+              schema: { type: string }
+
+components:
+  schemas:
+    ParseRequestBase:
+      type: object
+      required: [file_path]
+      properties:
+        file_path:
+          type: string
+          description: Absolute path inside the container's mounted volume
+        neo4j_database:
+          type: string
+          default: neo4j
+        overwrite:
+          type: boolean
+          default: false
+          description: If true, delete existing nodes for this source before writing
+
+    ParseResponse:
+      type: object
+      required: [id, stats, duration_ms]
+      properties:
+        id:
+          type: string
+          description: |
+            Deterministic ID of the top-level node created by this parse run
+            (workbook_id for tableau, schedule_id for tws, script_id for qlikview).
+        stats:
+          type: object
+          additionalProperties:
+            type: integer
+          description: |
+            Per-label counts. Keys are parser-specific
+            (e.g. {datasources, tables, attributes} for tableau).
+        duration_ms:
+          type: integer
+        warnings:
+          type: array
+          default: []
+          items:
+            type: object
+            required: [type, detail]
+            properties:
+              type: { type: string }
+              detail: { type: string }
+              line: { type: integer, nullable: true }
+              column: { type: integer, nullable: true }

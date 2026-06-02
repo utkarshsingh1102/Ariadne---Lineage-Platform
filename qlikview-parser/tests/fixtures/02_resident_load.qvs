@@ -1,0 +1,25 @@
+// ======================================================
+// Fixture 02 — RESIDENT load (in-memory derivation)
+// Source LOAD + a downstream RESIDENT LOAD that aggregates it.
+// Asserts: DERIVES_FROM_TABLE edge with via='resident'.
+// ======================================================
+
+ODBC CONNECT TO 'TERADATA_PROD';
+
+Orders:
+LOAD
+    OrderID,
+    CustomerID,
+    OrderDate,
+    Amount;
+SQL SELECT
+    OrderID, CustomerID, OrderDate, Amount
+FROM PROD.SALES.ORDERS;
+
+OrdersByCustomer:
+LOAD
+    CustomerID,
+    SUM(Amount)    AS TotalAmount,
+    COUNT(OrderID) AS OrderCount
+RESIDENT Orders
+GROUP BY CustomerID;

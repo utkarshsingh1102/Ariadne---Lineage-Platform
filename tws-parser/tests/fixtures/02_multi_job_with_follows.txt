@@ -1,0 +1,27 @@
+# Fixture 02 — Job-level FOLLOWS dependencies inside one schedule
+# Plan §2.1, §6 (CONTAINS_JOB + DEPENDS_ON edges).
+
+SCHEDULE WORKSTATION_A#MASTER#DAILY_SALES_LOAD
+  ON RUNCYCLE EVERY_WEEKDAY VALIDFROM 01/01/2025
+  AT 0530 UNTIL 0900
+  CARRYFORWARD
+  PRIORITY 50
+:
+  EXTRACT_ORDERS
+    SCRIPTNAME "/apps/abinitio/run.sh extract_orders.mp"
+    STREAMLOGON tws_user
+    DESCRIPTION "Extract orders from source"
+    RECOVERY STOP
+
+  TRANSFORM_ORDERS
+    SCRIPTNAME "/apps/abinitio/run.sh transform_orders.mp"
+    STREAMLOGON tws_user
+    FOLLOWS EXTRACT_ORDERS
+    RECOVERY RERUN
+
+  LOAD_ORDERS_TO_DW
+    SCRIPTNAME "/apps/bteq/load_orders.bteq"
+    STREAMLOGON tws_user
+    FOLLOWS TRANSFORM_ORDERS
+    RECOVERY CONTINUE
+END

@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+  Fixture 06 — Inner .twb for the .twbx packaging test.
+  Run `python fixtures/make_twbx.py` to produce 06_packaged_workbook.twbx
+  (a ZIP containing this file + an empty /Data/extract.hyper marker).
+  Plan §2.2 + §6 step 1 + §6 step 7 (has_extract detection).
+-->
+<workbook version='2024.1' source-platform='mac'>
+  <datasources>
+    <datasource caption='Packaged Sales' name='packaged_sales' inline='true' hasextract='true'>
+      <connection class='hyper' dbname='extract'/>
+      <relation name='Extract' table='[Extract].[Extract]' type='table'/>
+      <column datatype='integer' name='[OrderID]' role='dimension'/>
+      <column datatype='real'    name='[Amount]' role='measure'/>
+    </datasource>
+  </datasources>
+  <worksheets/>
+  <dashboards/>
+</workbook>

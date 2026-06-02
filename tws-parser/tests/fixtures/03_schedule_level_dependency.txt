@@ -1,0 +1,23 @@
+# Fixture 03 — Schedule-level FOLLOWS (Schedule → Schedule)
+# Plan §2.1, §6 step 7 (cross-schedule dependency linking with .@ wildcard).
+
+SCHEDULE WORKSTATION_A#MASTER#NIGHTLY_INFRA_CHECK
+  ON RUNCYCLE EVERY_WEEKDAY VALIDFROM 01/01/2025
+  AT 0200
+:
+  CHECK_DISK
+    SCRIPTNAME "/apps/ops/check_disk.sh"
+    STREAMLOGON ops_user
+    RECOVERY STOP
+END
+
+SCHEDULE WORKSTATION_A#MASTER#DAILY_SALES_LOAD
+  ON RUNCYCLE EVERY_WEEKDAY VALIDFROM 01/01/2025
+  AT 0530
+  FOLLOWS WORKSTATION_A#MASTER#NIGHTLY_INFRA_CHECK.@
+:
+  EXTRACT_ORDERS
+    SCRIPTNAME "/apps/abinitio/run.sh extract.mp"
+    STREAMLOGON tws_user
+    RECOVERY STOP
+END

@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+  Fixture 04 — Custom SQL relation (type="text")
+  Plan §2.1 + §6 step 4.3 (sqlglot extraction of physical tables).
+  Asserts the parser drops the SQL through sqlglot and emits one :Table
+  per physical table referenced.
+-->
+<workbook version='2024.1' source-platform='mac'>
+  <datasources>
+    <datasource caption='Custom Query' name='custom_sql_ds' inline='true'>
+      <connection class='teradata' server='td-prod' dbname='PROD' schema='SALES'/>
+      <relation name='Custom SQL Query' type='text'><![CDATA[
+        SELECT
+          o.OrderID,
+          o.CustomerID,
+          o.Amount,
+          c.CustomerName,
+          p.ProductName
+        FROM PROD.SALES.Orders o
+        INNER JOIN PROD.CRM.Customer c ON o.CustomerID = c.CustomerID
+        LEFT JOIN PROD.INVENTORY.Product p ON o.ProductID = p.ProductID
+        WHERE o.OrderDate >= DATE '2024-01-01'
+      ]]></relation>
+
+      <column datatype='integer' name='[OrderID]' role='dimension'/>
+      <column datatype='integer' name='[CustomerID]' role='dimension'/>
+      <column datatype='real'    name='[Amount]' role='measure'/>
+      <column datatype='string'  name='[CustomerName]' role='dimension'/>
+      <column datatype='string'  name='[ProductName]' role='dimension'/>
+    </datasource>
+  </datasources>
+  <worksheets/>
+  <dashboards/>
+</workbook>

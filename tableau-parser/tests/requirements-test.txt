@@ -1,0 +1,8 @@
+pytest==8.3.4
+pytest-cov==6.0.0
+pytest-mock==3.14.0
+lxml==5.4.0
+sqlglot==27.0.0
+neo4j==5.28.1
+fastapi==0.115.6
+httpx==0.28.1

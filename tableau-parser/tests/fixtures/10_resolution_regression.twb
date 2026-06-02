@@ -1,0 +1,110 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<!-- 10_resolution_regression.twb — exercises the three defect signatures
+     from RESOLUTION_PLAN.md against a workbook shape that mimics real
+     Tableau output:
+
+     1. Worksheet <view> blocks include a nested <datasources><datasource>
+        *reference* element. The pre-fix parser counted these as definitions,
+        inflating the datasource total. After the §2.1 fix only the two
+        direct children of <workbook>/<datasources> count.
+
+     2. A user datasource embeds a parameter column carrying the
+        ``param-domain-type`` attribute. The pre-fix parser counted this as
+        a calculated field. After §2.2 it lands in workbook.parameters.
+
+     3. A <metadata-records> block lists physical columns with the
+        standard leaf children (remote-name / local-name / parent-name /
+        local-type). The pre-fix coverage walker emitted unmapped_element
+        warnings for each leaf. After §2.4 the warnings list is empty.
+-->
+<workbook version='18.1'>
+  <datasources>
+
+    <datasource name='Parameters' caption='Parameters'>
+      <column name='[Region Filter]' caption='Region Filter' datatype='string'
+              role='dimension' param-domain-type='list' value='East' />
+    </datasource>
+
+    <datasource name='sales_ds' caption='Sales'>
+      <connection class='postgres' server='wh' dbname='sales' schema='public' />
+      <relation type='table' name='orders' table='[public].[orders]' />
+
+      <column name='[order_id]' datatype='integer' role='dimension' />
+      <column name='[order_amount]' datatype='real' role='measure'
+              default-aggregation='sum' />
+
+      <!-- Defect §2.2 — parameter masquerading as a calc field. The
+           ``param-domain-type`` attribute is the discriminator. -->
+      <column name='[Min Sales]' caption='Min Sales' datatype='real'
+              role='measure' param-domain-type='range' value='100' />
+
+      <!-- A real calc field — must remain in the calc count. -->
+      <column caption='Profit' name='[Profit]' datatype='real' role='measure'>
+        <calculation class='tableau' formula='[order_amount] - 5' />
+      </column>
+
+      <!-- Defect §2.4 — metadata-record children that must NOT surface as
+           unmapped warnings. -->
+      <metadata-records>
+        <metadata-record class='column'>
+          <remote-name>order_id</remote-name>
+          <remote-type>20</remote-type>
+          <local-name>[order_id]</local-name>
+          <parent-name>[orders]</parent-name>
+          <local-type>integer</local-type>
+          <aggregation>Count</aggregation>
+          <contains-null>true</contains-null>
+        </metadata-record>
+        <metadata-record class='column'>
+          <remote-name>order_amount</remote-name>
+          <local-name>[order_amount]</local-name>
+          <parent-name>[orders]</parent-name>
+          <local-type>real</local-type>
+          <aggregation>Sum</aggregation>
+          <contains-null>false</contains-null>
+        </metadata-record>
+      </metadata-records>
+    </datasource>
+
+  </datasources>
+
+  <worksheets>
+
+    <!-- Defect §2.1 — every worksheet view embeds a nested
+         <datasources><datasource> reference. The pre-fix XPath
+         ``.//datasources/datasource`` matched these AND the top-level
+         definitions. -->
+    <worksheet name='Sales by Order'>
+      <table>
+        <view>
+          <datasources>
+            <datasource name='sales_ds' caption='Sales' />
+          </datasources>
+          <datasource-dependencies datasource='sales_ds'>
+            <column name='[order_id]' />
+            <column name='[order_amount]' />
+          </datasource-dependencies>
+          <rows>[sales_ds].[order_id]</rows>
+          <cols>SUM([sales_ds].[order_amount])</cols>
+        </view>
+      </table>
+    </worksheet>
+
+    <worksheet name='Profit Detail'>
+      <table>
+        <view>
+          <datasources>
+            <datasource name='sales_ds' caption='Sales' />
+            <datasource name='Parameters' caption='Parameters' />
+          </datasources>
+          <datasource-dependencies datasource='sales_ds'>
+            <column name='[Profit]' />
+          </datasource-dependencies>
+        </view>
+      </table>
+    </worksheet>
+
+  </worksheets>
+
+  <dashboards />
+</workbook>

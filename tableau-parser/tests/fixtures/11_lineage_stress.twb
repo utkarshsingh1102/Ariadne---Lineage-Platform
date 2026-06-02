@@ -1,0 +1,363 @@
+<?xml version='1.0' encoding='utf-8' ?>
+
+<!-- ============================================================
+     LINEAGE STRESS TEST WORKBOOK
+     Designed to break naive Tableau lineage parsers.
+     Edge cases covered:
+       - Multiple federated datasources (cross-database join)
+       - Custom SQL with CTEs + initial SQL
+       - Stored-proc datasource
+       - Calc fields referencing calc fields (chained), 3 levels deep
+       - LOD expressions (FIXED / INCLUDE / EXCLUDE)
+       - Table calcs (WINDOW_SUM, LOOKUP) with addressing/partitioning
+       - Field name collisions across datasources
+       - Parameters used inside calcs
+       - Blended (secondary) datasource relationships
+       - Fields renamed via <column caption> vs underlying [name]
+       - Unicode + bracket-escaped field names
+       - Self-referencing calc through a parameter
+       - Datasource-level filters + extract
+       - Groups, bins, hierarchies, sets
+     ============================================================ -->
+
+<workbook original-version='18.1' source-build='2023.3.0' source-platform='win' version='18.1'>
+  <document-format-change-manifest>
+    <_.fcp.MarkAnimation.true...MarkAnimation />
+    <_.fcp.ObjectModelEncapsulateLegacy.true...ObjectModelEncapsulateLegacy />
+    <SheetIdentifierTracking />
+  </document-format-change-manifest>
+
+  <preferences>
+    <preference name='ui.encoding.shelf.height' value='24' />
+  </preferences>
+
+  <!-- ===================== PARAMETERS ===================== -->
+  <datasources>
+    <datasource hasconnection='false' inline='true' name='Parameters' version='18.1'>
+      <aliases enabled='yes' />
+      <column caption='Date Granularity' datatype='string' name='[Parameter 1]' param-domain-type='list' role='measure' type='nominal' value='&quot;Month&quot;'>
+        <calculation class='tableau' formula='&quot;Month&quot;' />
+        <members>
+          <member value='&quot;Day&quot;' />
+          <member value='&quot;Month&quot;' />
+          <member value='&quot;Quarter&quot;' />
+        </members>
+      </column>
+      <column caption='Risk Threshold' datatype='real' name='[Parameter 2]' param-domain-type='range' role='measure' type='quantitative' value='0.75'>
+        <calculation class='tableau' formula='0.75' />
+        <range granularity='0.05' max='1.0' min='0.0' />
+      </column>
+      <column caption='Target Region' datatype='string' name='[Parameter 3]' param-domain-type='list' role='measure' type='nominal' value='&quot;APAC&quot;'>
+        <calculation class='tableau' formula='&quot;APAC&quot;' />
+        <members>
+          <member value='&quot;APAC&quot;' />
+          <member value='&quot;EMEA&quot;' />
+          <member value='&quot;AMER&quot;' />
+        </members>
+      </column>
+    </datasource>
+
+    <!-- ===================== FEDERATED DS 1: cross-DB join + custom SQL ===================== -->
+    <datasource caption='Sales Federated' inline='true' name='federated.0sales1xyz' version='18.1'>
+      <connection class='federated'>
+        <named-connections>
+          <named-connection caption='warehouse-pg' name='postgres.conn001'>
+            <connection authentication='username-password' class='postgres' dbname='analytics' odbc-connect-string-extras='' port='5432' server='pg-warehouse.internal' username='etl_reader' />
+          </named-connection>
+          <named-connection caption='lake-snowflake' name='snowflake.conn002'>
+            <connection authentication='username-password' class='snowflake' dbname='DATALAKE' schema='PUBLIC' server='acme.snowflakecomputing.com' username='svc_bi' warehouse='BI_WH' />
+          </named-connection>
+        </named-connections>
+
+        <_.fcp.ObjectModelEncapsulateLegacy.false...relation connection='postgres.conn001' name='Custom SQL Query' type='text'>
+          <![CDATA[
+            WITH regional_orders AS (
+              SELECT o.order_id,
+                     o.customer_id,
+                     o.region_code,
+                     o.order_ts,
+                     o.gross_amount,
+                     o.discount_amount
+              FROM   analytics.public.orders o
+              WHERE  o.order_ts >= DATEADD(year, -2, CURRENT_DATE)
+            ),
+            cust AS (
+              SELECT customer_id, customer_segment, signup_date
+              FROM   analytics.public.customers
+            )
+            SELECT r.order_id,
+                   r.customer_id,
+                   c.customer_segment,
+                   r.region_code,
+                   r.order_ts,
+                   r.gross_amount,
+                   r.discount_amount,
+                   (r.gross_amount - r.discount_amount) AS net_amount
+            FROM   regional_orders r
+            LEFT JOIN cust c ON r.customer_id = c.customer_id
+          ]]>
+        </_.fcp.ObjectModelEncapsulateLegacy.false...relation>
+
+        <relation connection='snowflake.conn002' name='FX_RATES' table='[DATALAKE].[PUBLIC].[FX_RATES]' type='table' />
+
+        <relation join='left' type='join'>
+          <clause type='join'>
+            <expression op='='>
+              <expression op='[Custom SQL Query].[region_code]' />
+              <expression op='[FX_RATES].[REGION_CODE]' />
+            </expression>
+          </clause>
+          <relation connection='postgres.conn001' name='Custom SQL Query' type='text' />
+          <relation connection='snowflake.conn002' name='FX_RATES' table='[DATALAKE].[PUBLIC].[FX_RATES]' type='table' />
+        </relation>
+
+        <metadata-records>
+          <metadata-record class='column'>
+            <remote-name>order_id</remote-name>
+            <local-name>[order_id]</local-name>
+            <parent-name>[Custom SQL Query]</parent-name>
+            <remote-type>20</remote-type>
+            <local-type>integer</local-type>
+          </metadata-record>
+          <metadata-record class='column'>
+            <remote-name>net_amount</remote-name>
+            <local-name>[net_amount]</local-name>
+            <parent-name>[Custom SQL Query]</parent-name>
+            <remote-type>5</remote-type>
+            <local-type>real</local-type>
+          </metadata-record>
+          <metadata-record class='column'>
+            <remote-name>region_code</remote-name>
+            <local-name>[region_code]</local-name>
+            <parent-name>[Custom SQL Query]</parent-name>
+            <remote-type>129</remote-type>
+            <local-type>string</local-type>
+          </metadata-record>
+          <metadata-record class='column'>
+            <remote-name>FX_TO_USD</remote-name>
+            <local-name>[FX_TO_USD]</local-name>
+            <parent-name>[FX_RATES]</parent-name>
+            <remote-type>5</remote-type>
+            <local-type>real</local-type>
+          </metadata-record>
+        </metadata-records>
+      </connection>
+
+      <!-- initial SQL on the connection -->
+      <connection-customization class='federated' enabled='true'>
+        <vendor name='postgres' />
+        <driver name='postgres' />
+        <customizations>
+          <customization name='CAP_CREATE_TEMP_TABLES' value='no' />
+        </customizations>
+      </connection-customization>
+
+      <!-- datasource-level extract + filter -->
+      <extract count='-1' enabled='true' units='records'>
+        <connection class='dataengine' dbname='Data/Extracts/sales.hyper' schema='Extract' tablename='Extract' />
+      </extract>
+
+      <!-- ===== CALCULATED FIELDS (chained references) ===== -->
+
+      <!-- Level 0 base: pulls raw column + parameter -->
+      <column caption='Net Amount USD' datatype='real' name='[Calculation_net_usd]' role='measure' type='quantitative'>
+        <calculation class='tableau' formula='[net_amount] * [FX_TO_USD]' />
+      </column>
+
+      <!-- Level 1: references Level 0 calc -->
+      <column caption='Net Amount After Risk' datatype='real' name='[Calculation_net_risk]' role='measure' type='quantitative'>
+        <calculation class='tableau' formula='IF [FX_TO_USD] &gt;= [Parameters].[Parameter 2] THEN [Calculation_net_usd] ELSE [Calculation_net_usd] * 0.5 END' />
+      </column>
+
+      <!-- Level 2: references Level 1 calc (chained 3 deep) -->
+      <column caption='Risk Flag' datatype='boolean' name='[Calculation_risk_flag]' role='dimension' type='nominal'>
+        <calculation class='tableau' formula='[Calculation_net_risk] &lt; (0.5 * [Calculation_net_usd])' />
+      </column>
+
+      <!-- LOD: FIXED referencing a chained calc -->
+      <column caption='Cust Lifetime Net (FIXED)' datatype='real' name='[Calculation_lod_fixed]' role='measure' type='quantitative'>
+        <calculation class='tableau' formula='{ FIXED [customer_id] : SUM([Calculation_net_usd]) }' />
+      </column>
+
+      <!-- LOD: INCLUDE -->
+      <column caption='Region Net (INCLUDE)' datatype='real' name='[Calculation_lod_include]' role='measure' type='quantitative'>
+        <calculation class='tableau' formula='{ INCLUDE [region_code] : AVG([Calculation_net_risk]) }' />
+      </column>
+
+      <!-- LOD: EXCLUDE referencing FIXED LOD (nested LOD lineage) -->
+      <column caption='Net vs Lifetime (EXCLUDE)' datatype='real' name='[Calculation_lod_exclude]' role='measure' type='quantitative'>
+        <calculation class='tableau' formula='{ EXCLUDE [order_id] : SUM([Calculation_lod_fixed]) } - [Calculation_net_usd]' />
+      </column>
+
+      <!-- Table calc with explicit addressing/partitioning -->
+      <column caption='Running Net (Table Calc)' datatype='real' name='[Calculation_tablecalc_window]' role='measure' type='quantitative'>
+        <calculation class='tableau' formula='WINDOW_SUM(SUM([Calculation_net_usd]))' />
+      </column>
+
+      <column caption='Net YoY (LOOKUP)' datatype='real' name='[Calculation_tablecalc_lookup]' role='measure' type='quantitative'>
+        <calculation class='tableau' formula='SUM([Calculation_net_usd]) - LOOKUP(SUM([Calculation_net_usd]), -1)' />
+      </column>
+
+      <!-- Calc referencing a parameter inside a CASE driving date granularity -->
+      <column caption='Date Bucket' datatype='date' name='[Calculation_date_bucket]' role='dimension' type='ordinal'>
+        <calculation class='tableau' formula='CASE [Parameters].[Parameter 1] WHEN &quot;Day&quot; THEN DATETRUNC(&quot;day&quot;,[order_ts]) WHEN &quot;Month&quot; THEN DATETRUNC(&quot;month&quot;,[order_ts]) ELSE DATETRUNC(&quot;quarter&quot;,[order_ts]) END' />
+      </column>
+
+      <!-- Unicode + escaped-bracket field name collision target -->
+      <column caption='Margen %' datatype='real' name='[Calculation_margen_unicode]' role='measure' type='quantitative'>
+        <calculation class='tableau' formula='SUM([net_amount]) / SUM([gross_amount_]]raw])' />
+      </column>
+
+      <!-- GROUP on region_code -->
+      <group name='[region_code (group)]' name-style='unqualified'>
+        <groupfilter function='level-members' level='[region_code]' />
+        <bin />
+      </group>
+
+      <!-- BIN on net_amount -->
+      <column caption='Net Amount (bin)' datatype='real' name='[net_amount (bin)]' role='dimension' type='ordinal'>
+        <calculation class='bin' decimals='0' formula='[net_amount]' peg='0' size-parameter='[Parameters].[Parameter 2]' />
+      </column>
+
+      <!-- SET defined on a calculated field -->
+      <column caption='High Risk Set' datatype='boolean' name='[Set 1]' role='dimension' type='nominal'>
+        <calculation class='categorical-bin' column='[Calculation_risk_flag]'>
+          <bin value='true' />
+        </calculation>
+      </column>
+
+      <!-- HIERARCHY mixing raw + calc fields -->
+      <drill-paths>
+        <drill-path name='Geo Time Drill'>
+          <field>[region_code]</field>
+          <field>[Calculation_date_bucket]</field>
+          <field>[customer_id]</field>
+        </drill-path>
+      </drill-paths>
+    </datasource>
+
+    <!-- ===================== DS 2: stored procedure + name collisions ===================== -->
+    <datasource caption='Returns SP' inline='true' name='sqlproxy.0returns2abc' version='18.1'>
+      <connection class='federated'>
+        <named-connections>
+          <named-connection caption='mssql-ops' name='sqlserver.conn003'>
+            <connection authentication='sspi' class='sqlserver' dbname='OPS' one-time-sql='SET NOCOUNT ON;' server='mssql-ops.internal' />
+          </named-connection>
+        </named-connections>
+        <relation connection='sqlserver.conn003' name='usp_returns_summary' type='stored-proc'>
+          <actual-name>[dbo].[usp_returns_summary]</actual-name>
+          <columns>
+            <column datatype='integer' name='order_id' ordinal='1' />
+            <column datatype='real' name='net_amount' ordinal='2' />
+            <column datatype='string' name='region_code' ordinal='3' />
+            <column datatype='real' name='return_rate' ordinal='4' />
+          </columns>
+          <parameters>
+            <parameter datatype='string' name='@region' value='&quot;APAC&quot;' />
+            <parameter datatype='integer' name='@lookback_days' value='90' />
+          </parameters>
+        </relation>
+        <metadata-records>
+          <metadata-record class='column'>
+            <remote-name>net_amount</remote-name>
+            <local-name>[net_amount]</local-name>
+            <parent-name>[usp_returns_summary]</parent-name>
+            <local-type>real</local-type>
+          </metadata-record>
+          <metadata-record class='column'>
+            <remote-name>region_code</remote-name>
+            <local-name>[region_code]</local-name>
+            <parent-name>[usp_returns_summary]</parent-name>
+            <local-type>string</local-type>
+          </metadata-record>
+          <metadata-record class='column'>
+            <remote-name>return_rate</remote-name>
+            <local-name>[return_rate]</local-name>
+            <parent-name>[usp_returns_summary]</parent-name>
+            <local-type>real</local-type>
+          </metadata-record>
+        </metadata-records>
+      </connection>
+
+      <!-- NOTE: net_amount and region_code COLLIDE by name with DS1.
+           A correct parser must qualify by datasource, not just field name. -->
+      <column caption='Return Loss' datatype='real' name='[Calculation_return_loss]' role='measure' type='quantitative'>
+        <calculation class='tableau' formula='[net_amount] * [return_rate]' />
+      </column>
+    </datasource>
+  </datasources>
+
+  <!-- ===================== WORKSHEETS ===================== -->
+  <worksheets>
+    <worksheet name='Risk Overview'>
+      <table>
+        <view>
+          <datasources>
+            <datasource caption='Sales Federated' name='federated.0sales1xyz' />
+            <datasource caption='Returns SP' name='sqlproxy.0returns2abc' />
+          </datasources>
+
+          <!-- DATA BLENDING: secondary relationship on region_code -->
+          <datasource-dependencies datasource='federated.0sales1xyz'>
+            <column caption='Net Amount USD' datatype='real' name='[Calculation_net_usd]' role='measure' type='quantitative' />
+            <column caption='Risk Flag' datatype='boolean' name='[Calculation_risk_flag]' role='dimension' type='nominal' />
+            <column datatype='string' name='[region_code]' role='dimension' type='nominal' />
+            <column caption='Running Net (Table Calc)' datatype='real' name='[Calculation_tablecalc_window]' role='measure' type='quantitative' />
+          </datasource-dependencies>
+
+          <datasource-dependencies datasource='sqlproxy.0returns2abc'>
+            <column caption='Return Loss' datatype='real' name='[Calculation_return_loss]' role='measure' type='quantitative' />
+            <column datatype='string' name='[region_code]' role='dimension' type='nominal' />
+          </datasource-dependencies>
+
+          <!-- blend link declared on region_code across the two sources -->
+          <datasource-relationship>
+            <relation primary='federated.0sales1xyz' secondary='sqlproxy.0returns2abc'>
+              <clause>
+                <expression op='='>
+                  <expression op='[federated.0sales1xyz].[region_code]' />
+                  <expression op='[sqlproxy.0returns2abc].[region_code]' />
+                </expression>
+              </clause>
+            </relation>
+          </datasource-relationship>
+
+          <filter class='categorical' column='[federated.0sales1xyz].[Parameters].[Parameter 3]'>
+            <groupfilter function='member' level='[Parameters].[Parameter 3]' member='&quot;APAC&quot;' />
+          </filter>
+        </view>
+
+        <rows>[federated.0sales1xyz].[region_code]</rows>
+        <cols>([federated.0sales1xyz].[Calculation_net_usd] + [sqlproxy.0returns2abc].[Calculation_return_loss])</cols>
+      </table>
+    </worksheet>
+
+    <worksheet name='LOD Detail'>
+      <table>
+        <view>
+          <datasources>
+            <datasource caption='Sales Federated' name='federated.0sales1xyz' />
+          </datasources>
+          <datasource-dependencies datasource='federated.0sales1xyz'>
+            <column caption='Cust Lifetime Net (FIXED)' datatype='real' name='[Calculation_lod_fixed]' role='measure' type='quantitative' />
+            <column caption='Net vs Lifetime (EXCLUDE)' datatype='real' name='[Calculation_lod_exclude]' role='measure' type='quantitative' />
+            <column caption='Margen %' datatype='real' name='[Calculation_margen_unicode]' role='measure' type='quantitative' />
+            <column datatype='integer' name='[customer_id]' role='dimension' type='ordinal' />
+          </datasource-dependencies>
+        </view>
+        <rows>[federated.0sales1xyz].[customer_id]</rows>
+        <cols>[federated.0sales1xyz].[Calculation_lod_exclude]</cols>
+      </table>
+    </worksheet>
+  </worksheets>
+
+  <!-- ===================== DASHBOARD ===================== -->
+  <dashboards>
+    <dashboard name='Exec Dashboard'>
+      <zones>
+        <zone name='Risk Overview' />
+        <zone name='LOD Detail' />
+      </zones>
+    </dashboard>
+  </dashboards>
+</workbook>

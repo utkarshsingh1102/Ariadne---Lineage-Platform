@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+  Fixture 01 — Easiest case
+  One datasource, one physical table, three plain columns, one worksheet.
+  Plan §2.1, §6 steps 1–5.
+-->
+<workbook version='2024.1' source-platform='mac' xmlns:user='http://www.tableausoftware.com/xml/user'>
+  <datasources>
+    <datasource caption='Customer Data' name='customer_ds' inline='true'>
+      <connection class='teradata' server='td-prod' dbname='PROD' schema='SALES' port='1025' username='etl_user'/>
+      <relation name='Customer' table='[SALES].[Customer]' type='table'/>
+      <column datatype='integer' name='[CustomerID]' role='dimension' type='ordinal'/>
+      <column datatype='string'  name='[CustomerName]' role='dimension' type='nominal'/>
+      <column datatype='string'  name='[Region]' role='dimension' type='nominal'/>
+    </datasource>
+  </datasources>
+  <worksheets>
+    <worksheet name='Customers by Region'>
+      <table>
+        <view>
+          <datasource-dependencies datasource='customer_ds'>
+            <column datatype='string' name='[Region]' role='dimension'/>
+            <column datatype='string' name='[CustomerName]' role='dimension'/>
+          </datasource-dependencies>
+          <rows>[customer_ds].[Region]</rows>
+          <cols>[customer_ds].[CustomerName]</cols>
+        </view>
+      </table>
+    </worksheet>
+  </worksheets>
+  <dashboards/>
+</workbook>

@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+  Fixture 03 — Federated datasource with a join
+  Plan §2.1 (named-connections, join relation), §6 step 4.2 + 4.3.
+  Two upstream Teradata schemas joined on CustomerID.
+-->
+<workbook version='2024.1' source-platform='mac'>
+  <datasources>
+    <datasource caption='Federated Sales' name='federated_ds' inline='true'>
+      <named-connections>
+        <named-connection name='conn_sales' caption='Sales TD'>
+          <connection class='teradata' server='td-prod' dbname='PROD' schema='SALES'/>
+        </named-connection>
+        <named-connection name='conn_crm' caption='CRM TD'>
+          <connection class='teradata' server='td-prod' dbname='PROD' schema='CRM'/>
+        </named-connection>
+      </named-connections>
+
+      <relation join='inner' type='join'>
+        <clause type='join'>
+          <expression op='='>
+            <expression op='[conn_sales].[Orders].[CustomerID]'/>
+            <expression op='[conn_crm].[Customer].[CustomerID]'/>
+          </expression>
+        </clause>
+        <relation name='Orders'   table='[SALES].[Orders]'   type='table' connection='conn_sales'/>
+        <relation name='Customer' table='[CRM].[Customer]'   type='table' connection='conn_crm'/>
+      </relation>
+
+      <column datatype='integer' name='[CustomerID]' role='dimension'/>
+      <column datatype='string'  name='[CustomerName]' role='dimension'/>
+      <column datatype='real'    name='[Amount]' role='measure'/>
+    </datasource>
+  </datasources>
+  <worksheets/>
+  <dashboards/>
+</workbook>

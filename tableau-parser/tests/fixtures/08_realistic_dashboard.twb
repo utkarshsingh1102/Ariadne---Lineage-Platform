@@ -1,0 +1,128 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+  Fixture 08 — Kitchen-sink realistic workbook
+  Exercises every construct simultaneously:
+    - Multiple datasources (Teradata + Oracle + custom-SQL)
+    - Federated join inside one datasource
+    - Calculated fields incl. nested + LOD
+    - Multiple worksheets across datasources
+    - Multiple dashboards, one sharing worksheets with the other
+    - Parameters
+    - Unicode in field names
+-->
+<workbook version='2024.1' source-platform='mac'>
+  <datasources>
+
+    <!-- 1. Parameters -->
+    <datasource caption='Parameters' name='Parameters'>
+      <column datatype='integer' name='[Param.Year]' role='measure' value='2025'/>
+      <column datatype='string'  name='[Param.Région]' role='dimension' value='EMEA'/>
+    </datasource>
+
+    <!-- 2. Single Teradata source -->
+    <datasource caption='Sales' name='sales_ds' inline='true'>
+      <connection class='teradata' server='td-prod' dbname='PROD' schema='SALES'/>
+      <relation name='Orders' table='[SALES].[Orders]' type='table'/>
+      <column datatype='integer' name='[OrderID]' role='dimension'/>
+      <column datatype='integer' name='[CustomerID]' role='dimension'/>
+      <column datatype='real'    name='[Amount]' role='measure'/>
+      <column datatype='real' name='[AmountWithTax]' role='measure'>
+        <calculation class='tableau' formula='[Amount] * 1.18'/>
+      </column>
+      <column datatype='real' name='[TotalPerCustomer]' role='measure'>
+        <calculation class='tableau' formula='{FIXED [CustomerID] : SUM([AmountWithTax])}'/>
+      </column>
+    </datasource>
+
+    <!-- 3. Federated Oracle + Teradata -->
+    <datasource caption='Federated' name='federated_ds' inline='true'>
+      <named-connections>
+        <named-connection name='conn_td'>
+          <connection class='teradata' server='td-prod' dbname='PROD' schema='SALES'/>
+        </named-connection>
+        <named-connection name='conn_ora'>
+          <connection class='oracle' server='ora-crm' dbname='CRM' schema='PROD'/>
+        </named-connection>
+      </named-connections>
+      <relation join='left' type='join'>
+        <clause type='join'>
+          <expression op='='>
+            <expression op='[conn_td].[Orders].[CustomerID]'/>
+            <expression op='[conn_ora].[CustomerProfile].[CustomerID]'/>
+          </expression>
+        </clause>
+        <relation name='Orders'          table='[SALES].[Orders]'           type='table' connection='conn_td'/>
+        <relation name='CustomerProfile' table='[PROD].[CustomerProfile]'   type='table' connection='conn_ora'/>
+      </relation>
+      <column datatype='integer' name='[CustomerID]' role='dimension'/>
+      <column datatype='string'  name='[Tier]' role='dimension'/>
+    </datasource>
+
+    <!-- 4. Custom SQL source -->
+    <datasource caption='CustomSQL' name='custom_ds' inline='true'>
+      <connection class='teradata' server='td-prod' dbname='PROD' schema='ANALYTICS'/>
+      <relation name='AggregatedSales' type='text'><![CDATA[
+        SELECT region, SUM(amount) AS total_amount
+        FROM PROD.SALES.Orders o
+        JOIN PROD.CRM.Customer c ON o.CustomerID = c.CustomerID
+        GROUP BY region
+      ]]></relation>
+      <column datatype='string' name='[region]' role='dimension'/>
+      <column datatype='real'   name='[total_amount]' role='measure'/>
+    </datasource>
+
+    <!-- 5. Inventory (4th lineage datasource — single Oracle source) -->
+    <datasource caption='Inventory' name='inventory_ds' inline='true'>
+      <connection class='oracle' server='ora-inv' dbname='INVENTORY' schema='WAREHOUSE'/>
+      <relation name='Product' table='[WAREHOUSE].[Product]' type='table'/>
+      <column datatype='integer' name='[ProductID]' role='dimension'/>
+      <column datatype='string'  name='[ProductName]' role='dimension'/>
+      <column datatype='integer' name='[StockLevel]' role='measure'/>
+    </datasource>
+
+  </datasources>
+
+  <worksheets>
+    <worksheet name='Sales by Region'>
+      <table><view>
+        <datasource-dependencies datasource='custom_ds'>
+          <column datatype='string' name='[region]'/>
+          <column datatype='real'   name='[total_amount]'/>
+        </datasource-dependencies>
+        <rows>[custom_ds].[region]</rows>
+        <cols>[custom_ds].[total_amount]</cols>
+      </view></table>
+    </worksheet>
+    <worksheet name='Top Customers'>
+      <table><view>
+        <datasource-dependencies datasource='sales_ds'>
+          <column datatype='integer' name='[CustomerID]'/>
+          <column datatype='real'    name='[TotalPerCustomer]'/>
+        </datasource-dependencies>
+      </view></table>
+    </worksheet>
+    <worksheet name='Profiles'>
+      <table><view>
+        <datasource-dependencies datasource='federated_ds'>
+          <column datatype='integer' name='[CustomerID]'/>
+          <column datatype='string'  name='[Tier]'/>
+        </datasource-dependencies>
+      </view></table>
+    </worksheet>
+  </worksheets>
+
+  <dashboards>
+    <dashboard name='Executive Overview'>
+      <zones>
+        <zone name='Sales by Region' type='worksheet'/>
+        <zone name='Top Customers'   type='worksheet'/>
+      </zones>
+    </dashboard>
+    <dashboard name='Customer Detail'>
+      <zones>
+        <zone name='Top Customers' type='worksheet'/>   <!-- shared with first dashboard -->
+        <zone name='Profiles'      type='worksheet'/>
+      </zones>
+    </dashboard>
+  </dashboards>
+</workbook>

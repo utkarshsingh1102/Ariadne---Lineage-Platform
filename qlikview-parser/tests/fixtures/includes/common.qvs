@@ -1,0 +1,9 @@
+// Common transformations — included by fixture 06 and 08
+SET vDateFormat = 'YYYY-MM-DD';
+
+DateDim:
+LOAD
+    DateID,
+    Date(Date#(DateKey, 'YYYYMMDD'), '$(vDateFormat)') AS CalendarDate,
+    Year(Date#(DateKey, 'YYYYMMDD'))                   AS CalendarYear
+FROM 'C:\QlikData\date_dim.csv' (txt, embedded labels, delimiter is ',');

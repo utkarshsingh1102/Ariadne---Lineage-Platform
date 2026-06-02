@@ -1,0 +1,21 @@
+// ======================================================
+// Fixture 07 — SUB / END SUB / CALL
+// Plan §2.8: subroutines are inlined at the call site for lineage.
+// Currently not handled — see REVIEW.md §3.3.
+// ======================================================
+
+ODBC CONNECT TO 'TERADATA_PROD';
+
+SUB LoadDimensionTable(TableName, FQSourceTable)
+   [$(TableName)]:
+   LOAD *;
+   SQL SELECT * FROM $(FQSourceTable);
+END SUB
+
+SUB LogStep(StepName)
+   TRACE Loading $(StepName) at $(=now());
+END SUB
+
+CALL LoadDimensionTable('Customer', 'PROD.SALES.CUSTOMER');
+CALL LoadDimensionTable('Product',  'PROD.INVENTORY.PRODUCT');
+CALL LogStep('Dimensions loaded');

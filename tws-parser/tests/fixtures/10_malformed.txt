@@ -1,0 +1,19 @@
+# Deliberately malformed composer fixture.
+#
+# Used by Phase 1 tests to lock in the loud-failure invariant:
+# any parse error MUST reach the API response (no silent zero).
+
+SCHEDULE WORKSTATION_A#STREAM_X
+  AT 0100
+  :
+  JOB_OK
+    SCRIPTNAME "/opt/etl/ok.ksh"
+    STREAMLOGON etluser
+  JOB_BROKEN
+    SCRIPTNAME "/opt/etl/broken.ksh"
+    STREAMLOGON etluser
+    @@@ this line is not valid composer syntax @@@
+  JOB_ALSO_OK
+    SCRIPTNAME "/opt/etl/also_ok.ksh"
+    STREAMLOGON etluser
+END

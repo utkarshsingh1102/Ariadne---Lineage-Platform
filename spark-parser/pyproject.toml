@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spark-parser"
+version = "0.1.0"
+description = "Parses PySpark and Spark SQL into the lineage knowledge graph (Neo4j)"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "neo4j>=5.18",
+    "sqlglot>=23.0",
+    "libcst>=1.1",
+    "nbformat>=5.10",
+    "chardet>=5.2",
+    "structlog>=24.1",
+    "prometheus-client>=0.20",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "pytest-mock>=3.14",
+    "httpx>=0.27",
+    "testcontainers[neo4j]>=4.0",
+    "ruff>=0.3",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

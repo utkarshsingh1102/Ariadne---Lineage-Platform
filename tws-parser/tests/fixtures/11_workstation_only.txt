@@ -1,0 +1,20 @@
+# A file containing only workstation definitions — no SCHEDULE blocks.
+# Must parse cleanly: status=ok, parsed_schedules=0, workstations=2.
+
+CPUNAME WS_PRIMARY
+  DESCRIPTION "Primary workstation"
+  OS UNIX
+  NODE primary.bank.internal TCPADDR 31111
+  FOR MAESTRO
+    TYPE FTA
+    AUTOLINK ON
+    BEHINDFIREWALL OFF
+END
+
+CPUNAME WS_SECONDARY
+  DESCRIPTION "Secondary workstation"
+  OS UNIX
+  NODE secondary.bank.internal TCPADDR 31111
+  FOR MAESTRO
+    TYPE FTA
+END

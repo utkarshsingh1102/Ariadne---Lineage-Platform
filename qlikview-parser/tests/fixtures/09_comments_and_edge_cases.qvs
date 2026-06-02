@@ -1,0 +1,54 @@
+// ======================================================
+// Fixture 09 — Comment-handling stress test + edge cases
+// Direct repro of the bugs listed in REVIEW.md §4.1–§4.6.
+// ======================================================
+
+ODBC CONNECT TO 'TERADATA_PROD';
+
+/* ----------------------------------------------------------------
+   §4.3 trap — "Resident" word in a comment must NOT be parsed
+   as a RESIDENT clause for the *previous* LOAD.
+   ---------------------------------------------------------------- */
+Customer:
+LOAD CustomerID, CustomerName, Country;
+SQL SELECT CustomerID, CustomerName, Country
+FROM PROD.SALES.CUSTOMER;
+
+// -------------------------
+// Resident Load follows — this is a COMMENT, not a clause
+// -------------------------
+
+Orders:
+LOAD OrderID, CustomerID, Amount;
+SQL SELECT OrderID, CustomerID, Amount FROM PROD.SALES.ORDERS;
+
+/* ----------------------------------------------------------------
+   §4.1 trap — trailing semicolon must terminate the field list.
+   Currently leaks 'Country;' and 'SQL SELECT' into the fields.
+   ---------------------------------------------------------------- */
+MultiSemi:
+LOAD A, B, C;
+SQL SELECT A, B, C FROM PROD.X.Y;
+
+/* ----------------------------------------------------------------
+   §4.6 trap — string literals must not be treated as field refs.
+   ---------------------------------------------------------------- */
+Categorised:
+LOAD
+    OrderID,
+    IF(Amount > 1000, 'HIGH', 'LOW')           AS Bucket,
+    IF(Status = 'A', 'Active', 'Inactive')     AS StatusLabel
+;
+SQL SELECT OrderID, Amount, Status FROM PROD.SALES.ORDERS;
+
+/* ----------------------------------------------------------------
+   REM-style comment terminated by semicolon
+   ---------------------------------------------------------------- */
+REM This line is a comment that ends at the semicolon ;
+
+/* ----------------------------------------------------------------
+   Nested-looking but legal: a // inside a string literal
+   ---------------------------------------------------------------- */
+WithUrl:
+LOAD OrderID, 'https://example.com/path' AS SourceUrl;
+SQL SELECT OrderID FROM PROD.SALES.ORDERS;

@@ -1,0 +1,1450 @@
+// Carbon Design System — White light theme for the lineage platform.
+// Tokens flow theme → component, so this is the only place we set theme.
+
+@use "@carbon/react/scss/themes";
+@use "@carbon/react/scss/theme" with (
+  $theme: themes.$white
+);
+@use "@carbon/react";
+
+html, body, #__next {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--cds-background);
+  color: var(--cds-text-primary);
+}
+
+// App shell content offset — UIShell consumes the top 48px (3rem)
+.app-content {
+  margin-top: 3rem;
+  padding: 1.5rem 2rem;
+}
+
+.app-content--with-sidenav {
+  margin-left: 16rem; // SideNav default expanded width
+  transition: margin-left 0.2s ease;
+}
+
+.page-header {
+  margin-bottom: 1.5rem;
+
+  &__title {
+    font-size: 1.75rem;
+    line-height: 2.25rem;
+    font-weight: 300;
+    margin: 0.5rem 0;
+    color: var(--cds-text-primary);
+  }
+
+  &__subtitle {
+    color: var(--cds-text-secondary);
+    margin: 0;
+  }
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.metric-tile {
+  padding: 1rem 1.25rem;
+
+  &__label {
+    color: var(--cds-text-secondary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.32px;
+    margin: 0 0 0.5rem 0;
+  }
+
+  &__value {
+    color: var(--cds-text-primary);
+    font-size: 2rem;
+    font-weight: 300;
+    line-height: 2.25rem;
+    margin: 0;
+  }
+
+  &__delta {
+    color: var(--cds-text-secondary);
+    font-size: 0.75rem;
+    margin: 0.5rem 0 0 0;
+  }
+}
+
+.graph-canvas {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 14rem);
+  min-height: 420px;
+  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.graph-canvas__cyto {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.graph-edge-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5; // above cytoscape's canvas but below the toolbar/minimap
+}
+
+.graph-edge-overlay path[data-edge] {
+  transition: opacity 120ms ease, stroke-width 120ms ease;
+}
+
+.graph-edge-overlay path[data-edge].svg-edge--off {
+  opacity: 0.08;
+}
+
+.graph-edge-overlay path[data-edge].svg-edge--on {
+  stroke-width: 2.5;
+}
+
+// ---------------------------------------------------------------------------
+// Floating canvas toolbar — top-right, sits over the cyto canvas.
+// ---------------------------------------------------------------------------
+.graph-canvas-toolbar {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 20;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  background: var(--cds-layer-02);
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 4px;
+  padding: 0.375rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  max-width: calc(100% - 1.5rem);
+}
+
+.graph-canvas-toolbar__group {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.graph-canvas-toolbar__btn {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-layer-01);
+  color: var(--cds-text-primary);
+  border-radius: 2px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
+}
+
+.graph-canvas-toolbar__chip {
+  height: 1.75rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-layer-01);
+  color: var(--cds-text-secondary);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+
+  &--on {
+    background: #edf5ff;
+    border-color: #0f62fe;
+    color: #0f62fe;
+  }
+}
+
+// Hover-definition popover anchored under each filter chip. CSS-only:
+// shown on the wrapper's :hover or :focus-within so the keyboard path
+// matches the mouse path. A short delay avoids flicker when the cursor
+// passes over a row of chips.
+.graph-canvas-toolbar__chip-wrap {
+  position: relative;
+  display: inline-block;
+
+  &:hover .graph-canvas-toolbar__chip-def,
+  &:focus-within .graph-canvas-toolbar__chip-def {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    pointer-events: auto;
+    transition-delay: 120ms;
+  }
+}
+
+.graph-canvas-toolbar__chip-def {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translate(-50%, -4px);
+  z-index: 50;
+  width: 18rem;
+  padding: 0.625rem 0.75rem;
+  background: var(--cds-layer-01);
+  color: var(--cds-text-primary);
+  border: 1px solid var(--cds-border-subtle-02);
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease-out, transform 120ms ease-out;
+  font-size: 0.75rem;
+  line-height: 1.4;
+
+  // Small chevron pointing at the chip.
+  &::before {
+    content: "";
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    background: var(--cds-layer-01);
+    border-top: 1px solid var(--cds-border-subtle-02);
+    border-left: 1px solid var(--cds-border-subtle-02);
+    transform: translateX(-50%) rotate(45deg);
+  }
+}
+
+.graph-canvas-toolbar__chip-def-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.graph-canvas-toolbar__chip-def-label {
+  font-weight: 600;
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--cds-text-primary);
+}
+
+.graph-canvas-toolbar__chip-def-system {
+  display: inline-block;
+  padding: 0 0.375rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+
+  // Borders mirror SOURCE_SYSTEM_COLORS in cytoscape-config.ts so the
+  // popover badge and the on-canvas node tint agree at a glance.
+  &--tableau {
+    background: #edf5ff;
+    border-color: #0f62fe;
+    color: #0f62fe;
+  }
+  &--qlikview {
+    background: #defbe6;
+    border-color: #198038;
+    color: #198038;
+  }
+  &--tws {
+    background: #fff0f7;
+    border-color: #d02670;
+    color: #d02670;
+  }
+  &--spark {
+    background: #fcf4d6;
+    border-color: #b28600;
+    color: #b28600;
+  }
+  &--shared {
+    background: #f6f2ff;
+    border-color: #8a3ffc;
+    color: #8a3ffc;
+  }
+}
+
+.graph-canvas-toolbar__chip-def-body {
+  margin: 0 0 0.25rem;
+  color: var(--cds-text-secondary);
+}
+
+.graph-canvas-toolbar__chip-def-hint {
+  margin: 0;
+  color: var(--cds-text-helper);
+  font-size: 0.6875rem;
+  font-style: italic;
+}
+
+.graph-canvas-toolbar__search {
+  display: flex;
+  align-items: center;
+
+  input {
+    height: 1.75rem;
+    padding: 0 0.625rem;
+    font-size: 0.75rem;
+    border: 1px solid var(--cds-border-subtle-01);
+    border-radius: 2px;
+    background: var(--cds-layer-01);
+    color: var(--cds-text-primary);
+    width: 12rem;
+  }
+}
+
+// Ordered transformation chain — one card per step (in / op / out / expr).
+.transform-chain {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 26rem;
+  overflow-y: auto;
+}
+
+.transform-chain__step {
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 3px;
+  padding: 0.5rem 0.625rem;
+  background: var(--cds-layer-01);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.transform-chain__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+}
+
+.transform-chain__seq {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.6875rem;
+  color: var(--cds-text-secondary);
+  min-width: 1.75rem;
+}
+
+.transform-chain__line {
+  margin-left: auto;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.6875rem;
+  color: var(--cds-text-secondary);
+}
+
+.transform-chain__cols,
+.transform-chain__join {
+  font-size: 0.6875rem;
+  color: var(--cds-text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.transform-chain__col-set {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.transform-chain__expr {
+  margin: 0;
+  padding: 0.375rem 0.5rem;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.6875rem;
+  background: var(--cds-layer-02);
+  border-radius: 2px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--cds-text-primary);
+  max-height: 6rem;
+  overflow-y: auto;
+}
+
+.lineage-sidebar__cols {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 24rem;
+  overflow-y: auto;
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 2px;
+
+  > li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    border-bottom: 1px solid var(--cds-border-subtle-01);
+    font-size: 0.75rem;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+}
+
+.lineage-sidebar__col-name {
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--cds-text-primary);
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lineage-sidebar__col-type {
+  color: var(--cds-text-secondary);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.6875rem;
+}
+
+.lineage-sidebar__col-flag {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: #fff0f7;
+  color: #d02670;
+}
+
+.graph-minimap {
+  position: absolute;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  z-index: 20;
+  background: var(--cds-layer-02);
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 4px;
+  padding: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+
+  canvas {
+    display: block;
+    cursor: crosshair;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Lineage page — graph + right-side sliding panel
+// ---------------------------------------------------------------------------
+
+.lineage-layout {
+  display: flex;
+  align-items: stretch;
+  height: calc(100vh - 12rem);
+  min-height: 420px;
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--cds-layer-01);
+}
+
+// New parent of the graph + (optional) source panel. Lets us slot in a
+// resizable code viewer to the right of the graph without disturbing the
+// outer 3-column lineage shell.
+.lineage-layout__center {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  position: relative;
+}
+
+.lineage-layout__graph {
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+
+  .graph-canvas {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+  }
+}
+
+// Floating toolbar over the canvas — currently hosts the View Source toggle.
+// Top-LEFT, since the in-canvas controls (zoom + type filters + search) own
+// the top-right corner. z-index above the canvas controls so the button is
+// always grabbable.
+.lineage-graph-toolbar {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 25;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  background: var(--cds-layer-02);
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 4px;
+  padding: 0.25rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+// Resizable divider between graph and source. Wide enough to grab,
+// visually subtle until hover.
+.lineage-layout__divider {
+  flex: 0 0 auto;
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  border-left: 1px solid var(--cds-border-subtle-01);
+  transition: background 80ms ease-in-out;
+
+  &:hover,
+  &:active {
+    background: var(--cds-layer-hover);
+  }
+}
+
+.lineage-layout__source {
+  flex: 0 0 auto;
+  min-width: 320px;
+  max-width: 80%;
+  background: var(--cds-layer-01);
+  border-left: 1px solid var(--cds-border-subtle-01);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.lineage-sidebar {
+  flex: 0 0 auto;
+  width: 380px;
+  background: var(--cds-layer-01);
+  border-left: 1px solid var(--cds-border-subtle-01);
+  position: relative;
+  transition: width 0.22s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.lineage-sidebar--collapsed {
+  width: 36px;
+}
+
+.lineage-sidebar__toggle {
+  position: absolute;
+  top: 0.5rem;
+  left: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-right: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-layer-01);
+  color: var(--cds-icon-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: -2px;
+  }
+}
+
+.lineage-sidebar__content {
+  margin-left: 36px;
+  height: 100%;
+  overflow-y: auto;
+  padding: 1rem 1rem 2rem 1rem;
+
+  // Carbon Tabs internals can overflow horizontally on narrow panels — clip.
+  .cds--tabs {
+    width: 100%;
+  }
+}
+
+.lineage-sidebar__section {
+  margin-top: 1rem;
+
+  &:first-of-type {
+    margin-top: 0.5rem;
+  }
+
+  h4 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.32px;
+    color: var(--cds-text-secondary);
+    margin: 0 0 0.5rem 0;
+    font-weight: 600;
+  }
+}
+
+.lineage-sidebar__pre {
+  background: var(--cds-layer-02);
+  border: 1px solid var(--cds-border-subtle-01);
+  padding: 0.75rem;
+  border-radius: 2px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--cds-text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 24rem;
+  overflow-y: auto;
+  margin: 0;
+}
+
+.lineage-sidebar__kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+
+  dt {
+    color: var(--cds-text-secondary);
+    font-weight: 500;
+  }
+  dd {
+    margin: 0;
+    color: var(--cds-text-primary);
+    word-break: break-word;
+  }
+}
+
+// Pretty-printed JSON blob inside a property row — used whenever a
+// Neo4j property value is itself a JSON object/array (often emitted by
+// the spark writer for nested chain / schema metadata).
+.lineage-sidebar__json {
+  background: var(--cds-layer-02);
+  border: 1px solid var(--cds-border-subtle-01);
+  padding: 0.5rem 0.625rem;
+  border-radius: 2px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.7rem;
+  line-height: 1.45;
+  color: var(--cds-text-primary);
+  white-space: pre;
+  overflow-x: auto;
+  max-height: 14rem;
+  overflow-y: auto;
+  margin: 0;
+}
+
+.lineage-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--cds-text-secondary);
+  padding: 2rem;
+  text-align: center;
+}
+
+// Clickable row used inside the Connections / Columns sections of the
+// right-hand details panel. Hover state matches Carbon's interactive list
+// row treatment.
+.lineage-sidebar__conn-row {
+  transition: background-color 70ms ease-in-out;
+
+  &:hover,
+  &:focus-visible {
+    background-color: var(--cds-layer-hover);
+    outline: none;
+  }
+}
+
+// Left-side filters panel — mirror image of .lineage-sidebar.
+.lineage-filters {
+  flex: 0 0 auto;
+  width: 320px;
+  background: var(--cds-layer-01);
+  border-right: 1px solid var(--cds-border-subtle-01);
+  position: relative;
+  transition: width 0.22s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.lineage-filters--collapsed {
+  width: 36px;
+}
+
+.lineage-filters__toggle {
+  position: absolute;
+  top: 0.5rem;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-left: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-layer-01);
+  color: var(--cds-icon-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cds-focus);
+    outline-offset: -2px;
+  }
+}
+
+.lineage-filters__content {
+  margin-right: 36px;
+  height: 100%;
+  overflow-y: auto;
+  padding: 1rem 1rem 2rem 1rem;
+}
+
+// ---------------------------------------------------------------------------
+// Files page — left tree + right detail panel
+// ---------------------------------------------------------------------------
+
+.files-layout {
+  display: flex;
+  align-items: stretch;
+  height: calc(100vh - 12rem);
+  min-height: 420px;
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--cds-layer-01);
+}
+
+// Three-pane grid layout: folders | files | details
+//
+//   ┌──────────┬─────────────────┬─────────────────┐
+//   │ Folders  │  Files in       │  Details of     │
+//   │ (parser  │  selected       │  selected       │
+//   │  sources)│  folder         │  file           │
+//   └──────────┴─────────────────┴─────────────────┘
+.files-layout--grid {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) minmax(0, 1.1fr);
+  align-items: stretch;
+}
+
+// -- LEFT: parser-folder list ----------------------------------------------
+.files-folders {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: var(--cds-layer-02);
+  border-right: 1px solid var(--cds-border-subtle-01);
+  overflow-y: auto;
+}
+
+.files-folder {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--cds-text-primary);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
+
+  &--active {
+    background: var(--cds-layer-selected-01);
+    border-color: var(--cds-border-subtle-01);
+    font-weight: 600;
+  }
+}
+
+.files-folder__icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--cds-text-secondary);
+}
+
+.files-folder__name {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.files-folder__count {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+  background: var(--cds-layer-01);
+  border-radius: 999px;
+  padding: 0.0625rem 0.5rem;
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+// -- MIDDLE: file list -----------------------------------------------------
+.files-list {
+  overflow-y: auto;
+  background: var(--cds-layer-01);
+  border-right: 1px solid var(--cds-border-subtle-01);
+}
+
+.files-list__header-wrap {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.files-list__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+  background: var(--cds-layer-01);
+}
+
+.files-list__count {
+  margin-left: auto;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+}
+
+// List vs grid toggle. Two icon buttons, joined into one segmented control.
+.files-list__view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-left: 0.5rem;
+}
+
+.files-list__view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  background: var(--cds-layer-01);
+  color: var(--cds-text-secondary);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+    color: var(--cds-text-primary);
+  }
+
+  &--active {
+    background: var(--cds-layer-selected-01);
+    color: var(--cds-text-primary);
+  }
+
+  + .files-list__view-btn {
+    border-left: 1px solid var(--cds-border-subtle-01);
+  }
+}
+
+.files-list__items {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+
+.files-list__row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  color: var(--cds-text-primary);
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
+
+  &--active {
+    background: var(--cds-layer-selected-01);
+
+    &:hover {
+      background: var(--cds-layer-selected-hover-01);
+    }
+  }
+
+  + .files-list__row {
+    margin-top: 1px;
+  }
+}
+
+.files-list__row-icon {
+  color: var(--cds-text-secondary);
+  flex-shrink: 0;
+}
+
+.files-list__row-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.files-list__row-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.files-list__row-path {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.6875rem;
+  color: var(--cds-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.files-list__row-type {
+  flex-shrink: 0;
+}
+
+.files-list__row-delete {
+  opacity: 0;
+  transition: opacity 80ms ease-in-out;
+  flex-shrink: 0;
+}
+
+.files-list__row:hover .files-list__row-delete,
+.files-list__row:focus-within .files-list__row-delete,
+.files-list__row--active .files-list__row-delete {
+  opacity: 1;
+}
+
+.files-list__empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  color: var(--cds-text-secondary);
+  text-align: center;
+}
+
+// -- ICON / GRID view ------------------------------------------------------
+.files-list__grid {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.files-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0.875rem 0.75rem 0.75rem;
+  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 80ms ease, background 80ms ease;
+  min-width: 0;
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+    border-color: var(--cds-border-strong-01, #8d8d8d);
+
+    .files-card__delete {
+      opacity: 1;
+    }
+  }
+
+  &--active {
+    background: var(--cds-layer-selected-01);
+    border-color: var(--cds-focus, #0f62fe);
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--cds-focus, #0f62fe);
+    outline-offset: -2px;
+  }
+}
+
+.files-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: 0.5rem;
+  border-radius: 6px;
+  background: var(--cds-layer-02);
+  color: var(--cds-text-secondary);
+}
+
+.files-card--active .files-card__icon {
+  color: var(--cds-text-primary);
+}
+
+.files-card__name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--cds-text-primary);
+  // Allow up to two lines of name; truncate after with an ellipsis so the
+  // card heights stay even across the grid.
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  line-height: 1.25;
+  margin-bottom: 0.5rem;
+  width: 100%;
+}
+
+.files-card__meta {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: auto;
+}
+
+.files-card__delete {
+  position: absolute !important;
+  top: 0.25rem;
+  right: 0.25rem;
+  opacity: 0;
+  transition: opacity 80ms ease-in-out;
+}
+
+.files-card--active .files-card__delete {
+  opacity: 1;
+}
+
+.files-tree {
+  flex: 0 0 360px;
+  border-right: 1px solid var(--cds-border-subtle-01);
+  overflow-y: auto;
+  padding: 1rem;
+  background: var(--cds-layer-01);
+}
+
+.files-tree__group {
+  margin-bottom: 1.25rem;
+}
+
+.files-tree__group-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 0.375rem 0.5rem;
+  border-radius: 2px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--cds-text-primary);
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
+}
+
+.files-tree__group-count {
+  color: var(--cds-text-secondary);
+  font-weight: 400;
+  font-size: 0.75rem;
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.files-tree__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem 0.375rem 1.5rem;
+  cursor: pointer;
+  border-radius: 2px;
+  font-size: 0.8125rem;
+  color: var(--cds-text-primary);
+
+  &:hover {
+    background: var(--cds-layer-hover-01);
+  }
+
+  &--active {
+    background: var(--cds-layer-selected-01);
+    color: var(--cds-text-primary);
+
+    &:hover {
+      background: var(--cds-layer-selected-hover-01);
+    }
+  }
+}
+
+.files-tree__item-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Inline trash icon — only visible on row hover/focus so the tree
+// stays uncluttered.
+.files-tree__item-delete {
+  opacity: 0;
+  transition: opacity 80ms ease-in-out;
+  margin-left: auto;
+}
+.files-tree__item:hover .files-tree__item-delete,
+.files-tree__item:focus-within .files-tree__item-delete,
+.files-tree__item--active .files-tree__item-delete {
+  opacity: 1;
+}
+
+.files-tree__empty {
+  padding: 0.5rem 1.5rem;
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+  font-style: italic;
+}
+
+.files-detail {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 1.5rem 2rem;
+}
+
+.files-detail__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--cds-text-secondary);
+  text-align: center;
+}
+
+.graph-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: end;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+
+  > * {
+    min-width: 12rem;
+  }
+}
+
+.cypher-editor {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  font-size: 0.75rem;
+  color: var(--cds-text-secondary);
+
+  &__swatch {
+    display: inline-block;
+    width: 0.875rem;
+    height: 0.875rem;
+    border-radius: 3px;
+    border: 2px solid transparent; // colour set inline per legend entry
+    margin-right: 0.375rem;
+    vertical-align: middle;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Source code viewer panel + line highlight
+// ---------------------------------------------------------------------------
+.source-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--cds-layer-01);
+  font-family: "IBM Plex Mono", monospace;
+
+  &__header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--cds-border-subtle-01);
+    background: var(--cds-layer-02);
+  }
+
+  &__header-text {
+    min-width: 0;
+
+    h4 {
+      margin: 0;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--cds-text-primary);
+      font-family: "IBM Plex Sans", sans-serif;
+    }
+  }
+
+  &__meta {
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+    font-size: 0.6875rem;
+    color: var(--cds-text-secondary);
+  }
+
+  &__path {
+    font-size: 0.6875rem;
+    color: var(--cds-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 280px;
+    direction: rtl; // keep the filename visible if the prefix overflows
+    text-align: left;
+  }
+
+  &__actions {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  &__body {
+    flex: 1 1 auto;
+    overflow: auto;
+    background: var(--cds-layer-01);
+  }
+
+  &__state {
+    padding: 1.5rem 1rem;
+    color: var(--cds-text-secondary);
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.8125rem;
+
+    &--error {
+      color: var(--cds-text-error);
+
+      div {
+        margin-top: 0.5rem;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.75rem;
+      }
+    }
+  }
+
+  &__notice {
+    padding: 0.5rem 0.75rem;
+    background: var(--cds-notification-background-warning, #fdf6dd);
+    color: var(--cds-text-primary);
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.75rem;
+    border-bottom: 1px solid var(--cds-border-subtle-01);
+  }
+
+  &__code {
+    margin: 0;
+    padding: 0.5rem 0;
+    background: transparent;
+    font-size: 0.75rem;
+    line-height: 1.55;
+    color: var(--cds-text-primary);
+
+    code {
+      display: block;
+    }
+  }
+
+  &__line {
+    display: flex;
+    align-items: stretch;
+    padding-right: 0.75rem;
+    border-left: 3px solid transparent;
+    transition: background-color 80ms linear;
+
+    // Hover hint that the gutter is interactive when a node owns the line.
+    &--has-owner .source-panel__lineno {
+      color: var(--cds-link-primary);
+      cursor: pointer;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    // Persistent highlight while a node is selected.
+    &--hl {
+      background-color: rgba(15, 98, 254, 0.08);
+      border-left-color: var(--cds-link-primary);
+    }
+
+    // Sub-highlight for a single transform-step line within the
+    // surrounding node range.
+    &--step {
+      background-color: rgba(250, 77, 86, 0.12);
+      border-left-color: #fa4d56;
+    }
+
+    // One-shot pulse anchored to the first line of the range so the jump
+    // is visually noticeable even when the highlight was already on.
+    &--pulse {
+      animation: sourcePanelPulse 1.05s ease-out 1;
+    }
+  }
+
+  &__lineno {
+    flex: 0 0 auto;
+    text-align: right;
+    padding: 0 0.75rem 0 0.25rem;
+    margin-right: 0.5rem;
+    border-right: 1px solid var(--cds-border-subtle-01);
+    color: var(--cds-text-helper);
+    background: transparent;
+    border-top: 0;
+    border-bottom: 0;
+    border-left: 0;
+    font-family: inherit;
+    font-size: inherit;
+    user-select: none;
+  }
+
+  &__line-text {
+    flex: 1 1 auto;
+    white-space: pre;
+    overflow-x: auto;
+    padding-right: 0.5rem;
+  }
+}
+
+@keyframes sourcePanelPulse {
+  0% {
+    background-color: rgba(15, 98, 254, 0.45);
+  }
+  60% {
+    background-color: rgba(15, 98, 254, 0.18);
+  }
+  100% {
+    background-color: rgba(15, 98, 254, 0.08);
+  }
+}
+
+// Prism token colours — Carbon-friendly palette so the highlighted code
+// reads cleanly on both light and dark layers. We use Carbon tokens
+// instead of Prism's stock theme so we don't ship two competing themes.
+.source-panel__code {
+  .token.comment,
+  .token.prolog,
+  .token.cdata {
+    color: var(--cds-text-helper);
+    font-style: italic;
+  }
+  .token.keyword,
+  .token.boolean,
+  .token.builtin,
+  .token.class-name {
+    color: #8a3ffc; // Carbon Purple 60
+  }
+  .token.string,
+  .token.char,
+  .token.attr-value,
+  .token.regex {
+    color: #198038; // Carbon Green 60
+  }
+  .token.number,
+  .token.constant {
+    color: #d2a106; // Carbon Yellow 50
+  }
+  .token.function,
+  .token.method {
+    color: #0f62fe; // Carbon Blue 60
+  }
+  .token.operator,
+  .token.punctuation {
+    color: var(--cds-text-secondary);
+  }
+  .token.decorator,
+  .token.tag {
+    color: #ee5396; // Carbon Magenta 50
+  }
+  // XML attribute names (e.g. ``class="…"`` in a Tableau .twb workbook)
+  .token.attr-name,
+  .token.namespace {
+    color: #d12771; // Carbon Magenta 60 — darker than the tag itself
+  }
+  .token.entity,
+  .token.symbol {
+    color: #d2a106;
+  }
+}
+
+// Clickable L<line> chip inside the transform-chain step header.
+.transform-chain__line--clickable {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--cds-link-primary);
+  padding: 0 0.25rem;
+  font: inherit;
+  cursor: pointer;
+  border-radius: 2px;
+
+  &:hover {
+    background-color: var(--cds-layer-hover);
+    border-color: var(--cds-border-subtle-01);
+  }
+}

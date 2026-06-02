@@ -1,0 +1,2 @@
+{"commitInfo":{"timestamp":1700000240000,"operation":"DROP COLUMN"}}
+{"metaData":{"id":"01","format":{"provider":"parquet","options":{}},"schemaString":"{\"type\":\"struct\",\"fields\":[{\"name\":\"order_id\",\"type\":\"long\",\"nullable\":true,\"metadata\":{}},{\"name\":\"customer_id\",\"type\":\"long\",\"nullable\":true,\"metadata\":{}}]}","partitionColumns":[],"configuration":{},"createdTime":1700000000000}}

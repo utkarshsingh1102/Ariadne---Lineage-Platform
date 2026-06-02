@@ -1,0 +1,78 @@
+// Downstream traversal — invert the upstream pattern. Walks the same edge
+// types in the opposite direction so a physical table can fan out to every
+// derived attribute / dashboard / job that ultimately reads it.
+//
+// As in the upstream preset, PROVIDES_DATAFRAME / WRITES_TO_CONNECTION
+// are omitted so the trace doesn't fan out through a shared :Connection
+// hub into every other script using it.
+MATCH path = (downstream)-[
+  :CONTAINS_DATASOURCE
+  |CONTAINS_DASHBOARD
+  |CONTAINS_WORKSHEET
+  |CONTAINS_TABLE
+  |CONTAINS_CHART
+  |CONTAINS_SHEET
+  |CONTAINS_DATAFRAME
+  |CONTAINS_JOB
+  |CONTAINS_COMPONENT
+  |HAS_PARAMETER
+  |HAS_FIELD
+  |HAS_COLUMN
+  |USES_FIELD
+  |USES_PARAMETER
+  |USES_CONNECTION
+  |READS_TABLE
+  |WRITES_TABLE
+  |LOADS_FROM_TABLE
+  |LOADS_FROM_FILE
+  |DERIVES_FROM
+  |DERIVES_FROM_REF
+  |DERIVES_FROM_DATAFRAME
+  |FILTERS_BY
+  |SORTS_BY
+  |HAS_ZONE
+  |CONTROLS_PARAMETER
+  |FILTERS_VIA_ACTION
+  |SETS_PARAMETER
+  |HAS_GROUP
+  |HAS_SET
+  |HAS_BIN
+  |HAS_HIERARCHY
+  |HAS_LEVEL
+  |CONNECTS_VIA
+  |DISPLAYS_WORKSHEET
+  |JOINS_WITH
+  |CALLS_SCRIPT
+  // Improvement-v2 — :TableauParameterScope, blends, cross-DS refs, CTE columns.
+  |HAS_PARAMETER_SCOPE
+  |HAS_BLEND
+  |BLENDS_WITH
+  |DERIVES_FROM_CROSS_DS
+  |DERIVES_FROM_CTE_COLUMN
+  // TWS v0.2 — script + resource renames + new topology edges.
+  // EXECUTES replaces CALLS_SCRIPT (above kept for legacy graphs pending migration).
+  |EXECUTES
+  |REQUIRES_RESOURCE
+  |WAITS_FOR_FILE
+  |WAITS_FOR_PROMPT
+  |RUNS_ON
+  |HOSTS_STREAM
+  |RECOVERS_WITH
+  |TRIGGERS
+  |SCHEDULED_BY
+  |DEPENDS_ON
+  // QlikView v0.2 / Phase 3 — see upstream preset for rationale.
+  |SOURCED_FROM
+  |HAS_ATTRIBUTE
+  |STORED_AS
+  |MAPS_TO
+  |JOINS
+  |REFERENCES_FK
+  |HAS_CONSTRAINT
+  |FEEDS_OBJECT
+*1..6]->(start)
+WHERE start.id = $node_id
+   OR start.fully_qualified_name = $node_id
+   OR start.path = $node_id
+RETURN path
+LIMIT 500

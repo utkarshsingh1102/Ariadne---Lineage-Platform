@@ -1,0 +1,227 @@
+name: lineage-platform
+
+services:
+  neo4j:
+    image: neo4j:5.20-community
+    container_name: lineage-neo4j
+    # Remapped to 7475/7688 to coexist with other local Neo4j instances on 7474/7687.
+    ports:
+      - "7475:7474"   # HTTP / Browser
+      - "7688:7687"   # Bolt
+    environment:
+      NEO4J_AUTH: neo4j/lineagepass
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: 'apoc.*'
+      NEO4J_server_memory_pagecache_size: 512M
+      NEO4J_server_memory_heap_initial__size: 512M
+      NEO4J_server_memory_heap_max__size: 1G
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      # Reference copies for humans (not the canonical mount the init container uses).
+      # Mounted outside /var/lib/neo4j/import to avoid the chown-on-startup conflict
+      # with :ro mounts.
+      - ./infra/neo4j/init.cypher:/contracts/init.cypher:ro
+      - ../lineage-contracts/schema/neo4j-constraints.cypher:/contracts/constraints.cypher:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  neo4j-init:
+    # One-shot container that applies constraints once Neo4j is healthy.
+    # Re-running is safe (constraints use IF NOT EXISTS).
+    image: neo4j:5.20-community
+    container_name: lineage-neo4j-init
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    volumes:
+      - ../lineage-contracts/schema/neo4j-constraints.cypher:/constraints.cypher:ro
+    entrypoint: >
+      sh -c "cypher-shell -a bolt://neo4j:7687 -u neo4j -p lineagepass -f /constraints.cypher && echo 'Constraints applied.'"
+    restart: "no"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: lineage-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: lineage
+      POSTGRES_PASSWORD: lineagepass
+      POSTGRES_DB: lineage
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lineage -d lineage"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ===========================================================================
+  # Parser services — wired in as each phase completes.
+  # Uncomment as the corresponding parser repo lands.
+  # ===========================================================================
+
+  tableau-parser:
+    build:
+      context: ../tableau-parser
+      dockerfile: Dockerfile
+    container_name: lineage-tableau-parser
+    ports:
+      - "8001:8000"
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: lineagepass
+      NEO4J_DATABASE: neo4j
+      LOG_LEVEL: INFO
+    volumes:
+      - ../tableau-parser/tests/fixtures:/data/inputs:ro
+      - ./uploads:/data/uploads:rw
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      neo4j-init:
+        condition: service_completed_successfully
+
+  tws-parser:
+    build:
+      context: ../tws-parser
+      dockerfile: Dockerfile
+    container_name: lineage-tws-parser
+    ports:
+      - "8002:8000"
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: lineagepass
+      NEO4J_DATABASE: neo4j
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: lineage
+      POSTGRES_USER: lineage
+      POSTGRES_PASSWORD: lineagepass
+      POSTGRES_SCHEMA: tws
+      LOG_LEVEL: INFO
+    volumes:
+      - ../tws-parser/tests/fixtures:/data/inputs:ro
+      - ./uploads:/data/uploads:rw
+      # Make tws-schema.sql discoverable at the path the baseline migration looks for.
+      - ../lineage-contracts/schema/postgres/tws-schema.sql:/app/src/tws_parser/rdbms/tws-schema.sql:ro
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      neo4j-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+
+  qlikview-parser:
+    build:
+      context: ../qlikview-parser
+      dockerfile: Dockerfile
+    container_name: lineage-qlikview-parser
+    ports:
+      - "8003:8000"
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: lineagepass
+      NEO4J_DATABASE: neo4j
+      LOG_LEVEL: INFO
+    volumes:
+      - ../qlikview-parser/tests/fixtures:/data/inputs:ro
+      - ./uploads:/data/uploads:rw
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      neo4j-init:
+        condition: service_completed_successfully
+
+  spark-parser:
+    build:
+      context: ../spark-parser
+      dockerfile: Dockerfile
+    container_name: lineage-spark-parser
+    ports:
+      - "8004:8000"
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: lineagepass
+      NEO4J_DATABASE: neo4j
+      LOG_LEVEL: INFO
+    volumes:
+      - ../spark-parser/fixtures:/data/inputs:ro
+      - ./uploads:/data/uploads:rw
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      neo4j-init:
+        condition: service_completed_successfully
+
+  gateway:
+    build:
+      context: ./apps/gateway
+      dockerfile: Dockerfile
+    container_name: lineage-gateway
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mirror the spark-parser's mounts at the SAME container paths so the
+      # /files/{source}/{id}/source endpoint can read whichever absolute path
+      # the parser persisted in Neo4j. The gateway also WRITES here via
+      # /parse/upload and /parse/upload/multi (multipart save), so this mount
+      # must be RW.
+      - ./uploads:/data/uploads:rw
+      - ../spark-parser/fixtures:/data/inputs:ro
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: lineagepass
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: lineage
+      POSTGRES_USER: lineage
+      POSTGRES_PASSWORD: lineagepass
+      PARSER_TABLEAU_URL: http://tableau-parser:8000
+      PARSER_TWS_URL: http://tws-parser:8000
+      PARSER_QLIKVIEW_URL: http://qlikview-parser:8000
+      PARSER_SPARK_URL: http://spark-parser:8000
+      # Where /parse/upload + /parse/upload/multi save incoming multipart
+      # files. Must match the parser mount (CONTAINER_UPLOAD_DIR) so the
+      # parser can re-open the files we just wrote.
+      UPLOAD_DIR: /data/uploads
+      CORS_ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:3001"
+      LOG_LEVEL: INFO
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      neo4j-init:
+        condition: service_completed_successfully
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: lineage-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      # Browser-visible; the frontend fetches from the host's published port.
+      NEXT_PUBLIC_GATEWAY_URL: http://localhost:8000
+      NODE_ENV: production
+    depends_on:
+      - gateway
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  postgres_data:

@@ -1,0 +1,102 @@
+# ---------------------------------------------------------------------------
+# User-specified ignores
+# ---------------------------------------------------------------------------
+docs/
+frontend-test/
+qlickview-parser/
+spark-improvement/
+tableau-improvement/
+
+IBM_Carbon_Design_System_Reference.md
+qlikview-parser-plan.md
+qlikview-tests.tar.gz
+spark-parser-plan.md
+spark-parser-test-report.md
+spark-parser-tests.zip
+tableau-parser-plan.md
+tableau-parser-tests.zip
+tws-parser-plan.md
+tws-parser-tests.zip
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+
+# ---------------------------------------------------------------------------
+# ANTLR generated code (regenerated from .g4 grammars by the build)
+# ---------------------------------------------------------------------------
+**/src/qlikview_parser/generated/*.py
+!**/src/qlikview_parser/generated/__init__.py
+**/src/tws_parser/generated/*.py
+!**/src/tws_parser/generated/__init__.py
+**/generated/*.interp
+**/generated/*.tokens
+
+# ---------------------------------------------------------------------------
+# Node / Next.js / Frontend
+# ---------------------------------------------------------------------------
+node_modules/
+.next/
+.turbo/
+out/
+dist/
+build/
+*.tsbuildinfo
+.npm/
+.yarn/
+.pnpm-store/
+
+# ---------------------------------------------------------------------------
+# Runtime / process state
+# ---------------------------------------------------------------------------
+.run/
+*.pid
+*.log
+*.log.*
+
+# ---------------------------------------------------------------------------
+# Uploaded fixtures / data
+# ---------------------------------------------------------------------------
+uploads/
+*.qvw
+*.tde
+*.hyper
+
+# ---------------------------------------------------------------------------
+# Secrets
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets/
+
+# ---------------------------------------------------------------------------
+# IDE / OS noise
+# ---------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

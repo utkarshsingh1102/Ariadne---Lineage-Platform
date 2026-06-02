@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Fixture 08 — Companion XML metadata
+  Mirrors the "Document Analyzer / Generate XML" output of QlikView.
+  Plan §6 step 7: parse with lxml, emit :QlikSheet, :QlikChart, USES_FIELD edges.
+-->
+<DocumentSummary>
+  <Document>
+    <Name>SalesDashboard</Name>
+    <Sheets>
+      <Sheet>
+        <Name>Overview</Name>
+        <Objects>
+          <ChartObject>
+            <Name>Monthly Sales</Name>
+            <ChartType>BarChart</ChartType>
+            <Dimensions>
+              <Dimension>OrderDate</Dimension>
+              <Dimension>Region</Dimension>
+            </Dimensions>
+            <Expressions>
+              <Expression>SUM(AmountWithTax)</Expression>
+              <Expression>COUNT(DISTINCT OrderID)</Expression>
+            </Expressions>
+          </ChartObject>
+          <TableObject>
+            <Name>Top Customers</Name>
+            <Dimensions>
+              <Dimension>CustomerName</Dimension>
+            </Dimensions>
+            <Expressions>
+              <Expression>TotalAmount</Expression>
+              <Expression>OrderCount</Expression>
+            </Expressions>
+          </TableObject>
+        </Objects>
+      </Sheet>
+      <Sheet>
+        <Name>Customer Detail</Name>
+        <Objects>
+          <ChartObject>
+            <Name>Status Mix</Name>
+            <ChartType>PieChart</ChartType>
+            <Dimensions>
+              <Dimension>CustomerStatus</Dimension>
+            </Dimensions>
+            <Expressions>
+              <Expression>COUNT(CustomerID)</Expression>
+            </Expressions>
+          </ChartObject>
+        </Objects>
+      </Sheet>
+    </Sheets>
+  </Document>
+</DocumentSummary>

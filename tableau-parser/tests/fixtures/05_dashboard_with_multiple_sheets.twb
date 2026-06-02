@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+  Fixture 05 — Dashboard containing multiple worksheets
+  Plan §6 step 6: DisplaysWorksheetIR deduplication.
+  Asserts CONTAINS_DASHBOARD + DISPLAYS_WORKSHEET edges, no duplicates if
+  the same worksheet is referenced from multiple zones.
+-->
+<workbook version='2024.1' source-platform='mac'>
+  <datasources>
+    <datasource caption='Sales' name='sales_ds' inline='true'>
+      <connection class='teradata' server='td-prod' dbname='PROD' schema='SALES'/>
+      <relation name='Orders' table='[SALES].[Orders]' type='table'/>
+      <column datatype='integer' name='[OrderID]' role='dimension'/>
+      <column datatype='real'    name='[Amount]' role='measure'/>
+      <column datatype='date'    name='[OrderDate]' role='dimension'/>
+    </datasource>
+  </datasources>
+  <worksheets>
+    <worksheet name='Monthly Sales'>
+      <table><view>
+        <datasource-dependencies datasource='sales_ds'>
+          <column datatype='date' name='[OrderDate]' role='dimension'/>
+          <column datatype='real' name='[Amount]' role='measure'/>
+        </datasource-dependencies>
+      </view></table>
+    </worksheet>
+    <worksheet name='Top Orders'>
+      <table><view>
+        <datasource-dependencies datasource='sales_ds'>
+          <column datatype='integer' name='[OrderID]' role='dimension'/>
+          <column datatype='real' name='[Amount]' role='measure'/>
+        </datasource-dependencies>
+      </view></table>
+    </worksheet>
+  </worksheets>
+  <dashboards>
+    <dashboard name='Sales Overview'>
+      <zones>
+        <zone name='Monthly Sales' type='worksheet'/>
+        <zone type='container'>
+          <zones>
+            <zone name='Top Orders' type='worksheet'/>
+            <zone name='Monthly Sales' type='worksheet'/>  <!-- intentional repeat -->
+          </zones>
+        </zone>
+      </zones>
+    </dashboard>
+  </dashboards>
+</workbook>
