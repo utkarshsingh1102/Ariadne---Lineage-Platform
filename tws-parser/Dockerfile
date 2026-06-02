@@ -29,11 +29,17 @@ WORKDIR /app
 COPY pyproject.toml ./
 COPY src/ ./src/
 COPY alembic.ini ./
+
+# Drop the ANTLR-generated lexer/parser/visitor files into the source tree
+# BEFORE pip install, so setuptools packages them into the installed wheel
+# alongside the rest of tws_parser. Previously this COPY ran AFTER pip
+# install, which put the files at /app/src/... while the package lived in
+# site-packages — Python imports from site-packages, so the lexer wasn't
+# findable and the service crashed on startup with ModuleNotFoundError.
+COPY --from=antlr-build /build/generated/ ./src/tws_parser/generated/
+
 RUN pip install --no-cache-dir --upgrade pip build \
     && pip install --no-cache-dir .
-
-# Drop the codegen output in where the package expects it
-COPY --from=antlr-build /build/generated/ ./src/tws_parser/generated/
 
 USER app
 EXPOSE 8000
