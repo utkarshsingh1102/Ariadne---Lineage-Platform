@@ -23,7 +23,10 @@ APP_DIR="/home/ec2-user/ariadne"
 
 echo "[user-data] === Phase 1: system packages ==="
 dnf update -y
-dnf install -y docker git curl
+# Don't install "curl" — AL2023 ships curl-minimal, and dnf can't have both
+# installed at once (they file-conflict). curl-minimal supports -fsSL / -X / -H
+# which is everything this script and the docker-compose builds need.
+dnf install -y docker git
 
 echo "[user-data] === Phase 2: docker compose plugin ==="
 mkdir -p /usr/local/lib/docker/cli-plugins
