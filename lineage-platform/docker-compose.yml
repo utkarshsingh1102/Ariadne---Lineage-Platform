@@ -197,7 +197,7 @@ services:
       # files. Must match the parser mount (CONTAINER_UPLOAD_DIR) so the
       # parser can re-open the files we just wrote.
       UPLOAD_DIR: /data/uploads
-      CORS_ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:3001"
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001}
       LOG_LEVEL: INFO
     depends_on:
       neo4j:
@@ -211,12 +211,14 @@ services:
     build:
       context: ./apps/frontend
       dockerfile: Dockerfile
+      args:
+        # NEXT_PUBLIC_* is inlined at build time. Override via .env when
+        # deploying to a non-localhost host (e.g., AWS EC2 public DNS).
+        NEXT_PUBLIC_GATEWAY_URL: ${NEXT_PUBLIC_GATEWAY_URL:-http://localhost:8000}
     container_name: lineage-frontend
     ports:
       - "3000:3000"
     environment:
-      # Browser-visible; the frontend fetches from the host's published port.
-      NEXT_PUBLIC_GATEWAY_URL: http://localhost:8000
       NODE_ENV: production
     depends_on:
       - gateway

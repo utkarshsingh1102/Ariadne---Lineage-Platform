@@ -1,0 +1,22 @@
+# Copy this file to terraform.tfvars and fill in the two required values.
+# terraform.tfvars is gitignored — your IP and key-pair name stay local.
+
+# --- REQUIRED ----------------------------------------------------------------
+
+# Name of an EXISTING EC2 key pair in your AWS region. Create one in the
+# Console (EC2 > Key Pairs > Create key pair) and download the .pem.
+key_pair_name = "ariadne-demo"
+
+# Your public IP in CIDR notation. Find it at https://checkip.amazonaws.com/
+# and append "/32" (a single host). The security group locks SSH and the demo
+# ports to this IP only — change it whenever your home/office IP changes.
+operator_ip_cidr = "203.0.113.42/32"
+
+# --- OPTIONAL (defaults shown) -----------------------------------------------
+
+# aws_region     = "us-east-1"
+# project_name   = "ariadne-lineage"
+# instance_type  = "t3.medium"        # t3.small won't fit Neo4j comfortably
+# root_volume_gb = 30
+# repo_url       = "https://github.com/utkarshsingh1102/Ariadne---Lineage-Platform.git"
+# repo_branch    = "main"

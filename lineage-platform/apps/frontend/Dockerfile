@@ -12,6 +12,13 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# NEXT_PUBLIC_* vars are inlined into the static bundle at build time, so the
+# gateway URL has to be known here, not at run time. Default = localhost for
+# local docker-compose dev; AWS deploys override via the compose build arg.
+ARG NEXT_PUBLIC_GATEWAY_URL=http://localhost:8000
+ENV NEXT_PUBLIC_GATEWAY_URL=$NEXT_PUBLIC_GATEWAY_URL
+
 RUN npm run build
 
 FROM node:20-alpine AS runner

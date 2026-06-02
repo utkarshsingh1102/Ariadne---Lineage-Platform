@@ -116,6 +116,12 @@ cd Ariadne---Lineage-Platform
 ./start.sh
 ```
 
+### Deploy to AWS
+
+A Terraform module under [`deploy/aws/`](deploy/aws/) provisions a single-EC2
+demo deployment (~$30/month always-on, ~$12/month if you stop it nights).
+Full step-by-step runbook in [deploy/aws/README.md](deploy/aws/README.md).
+
 `start.sh` builds the four parser images, brings up Neo4j + Postgres +
 parsers via docker-compose, then launches the gateway and frontend on the
 host. When it finishes:

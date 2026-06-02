@@ -1,0 +1,19 @@
+# Never commit operator-specific values (your IP, key-pair name) or Terraform
+# state — state contains the AMI id, instance id, and is the source of truth
+# for `terraform destroy`. Keep it local or move it to a remote backend (S3
+# with DynamoDB lock) when you graduate beyond a personal demo.
+
+terraform.tfvars
+*.tfvars
+!terraform.tfvars.example
+
+# State + lockfile metadata
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+
+# Plan output
+*.tfplan
