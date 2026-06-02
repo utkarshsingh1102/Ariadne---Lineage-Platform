@@ -85,6 +85,31 @@ Prerequisites: Docker Desktop, Python 3.11+, Node 18+. Java 17 is needed only
 if you want to regenerate ANTLR parsers locally (the Docker builds handle this
 on their own).
 
+### Windows
+
+The stack's lifecycle scripts (`start.sh`, `refresh.sh`, etc.) are bash, so on
+Windows everything runs inside WSL2 Ubuntu. A one-shot setup script handles
+the Windows-side prerequisites (WSL2 + Ubuntu + Docker Desktop + Git) and
+stages a companion script at `~/setup-wsl.sh` for the Linux-side ones
+(Python 3.11, Node 18, system tools):
+
+```powershell
+# From an elevated PowerShell (Run as Administrator):
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\setup-windows.ps1
+```
+
+Once it finishes, open Ubuntu and run:
+
+```bash
+~/setup-wsl.sh
+git clone https://github.com/utkarshsingh1102/Ariadne---Lineage-Platform.git
+cd Ariadne---Lineage-Platform
+./start.sh
+```
+
+### macOS / Linux
+
 ```bash
 git clone https://github.com/utkarshsingh1102/Ariadne---Lineage-Platform.git
 cd Ariadne---Lineage-Platform
