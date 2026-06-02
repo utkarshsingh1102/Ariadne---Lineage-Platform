@@ -48,7 +48,7 @@ data "aws_ami" "al2023" {
 # ---------------------------------------------------------------------------
 resource "aws_security_group" "this" {
   name        = "${var.project_name}-sg"
-  description = "Ariadne lineage platform — single-EC2 demo"
+  description = "Ariadne lineage platform - single-EC2 demo"
 
   ingress {
     description = "SSH from operator IP"
