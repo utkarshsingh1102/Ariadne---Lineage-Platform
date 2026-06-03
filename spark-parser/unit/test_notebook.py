@@ -77,3 +77,90 @@ def test_dbc_archive_unpacks_to_notebook(tmp_path):
     cells = extract_cells(dbc)
     assert len(cells) == 1
     assert "spark.read.parquet" in cells[0].source
+
+
+# ---------------------------------------------------------------------------
+# Jupyter magic stripping — regression coverage for the spark-parser bug
+# where `!pip install` (or any line magic) at the top of a notebook caused
+# ast.parse() to fail across the entire file and emit zero stats.
+# ---------------------------------------------------------------------------
+
+def _ipynb_with(cells_src: list[str]) -> dict:
+    return {
+        "metadata": {"language_info": {"name": "python"}},
+        "cells": [
+            {"cell_type": "code", "source": s, "execution_count": i + 1}
+            for i, s in enumerate(cells_src)
+        ],
+        "nbformat": 4, "nbformat_minor": 5,
+    }
+
+
+def test_strip_shell_escape_drops_pip_install():
+    from spark_parser.input.notebook import _cells_from_ipynb_dict
+    cells = _cells_from_ipynb_dict(_ipynb_with([
+        "!pip install pyspark",
+        "from pyspark.sql import SparkSession\nspark = SparkSession.builder.getOrCreate()",
+    ]))
+    # First cell was nothing but a shell escape — should be dropped entirely.
+    assert len(cells) == 1
+    assert "SparkSession" in cells[0].source
+
+
+def test_strip_line_magic_keeps_rest_of_cell():
+    from spark_parser.input.notebook import _cells_from_ipynb_dict
+    cells = _cells_from_ipynb_dict(_ipynb_with([
+        "%matplotlib inline\nimport pandas as pd",
+    ]))
+    assert len(cells) == 1
+    assert "import pandas as pd" in cells[0].source
+    assert "%matplotlib" not in cells[0].source
+
+
+def test_sql_cell_magic_reclassifies_cell_as_sql():
+    from spark_parser.input.notebook import _cells_from_ipynb_dict
+    cells = _cells_from_ipynb_dict(_ipynb_with([
+        "%%sql\nSELECT * FROM movies WHERE rating > 4",
+    ]))
+    assert len(cells) == 1
+    assert cells[0].language == "sql"
+    assert "SELECT * FROM movies" in cells[0].source
+    assert "%%sql" not in cells[0].source
+
+
+def test_bash_cell_magic_drops_cell_entirely():
+    from spark_parser.input.notebook import _cells_from_ipynb_dict
+    cells = _cells_from_ipynb_dict(_ipynb_with([
+        "%%bash\nls -la /tmp",
+        "from pyspark.sql import SparkSession",
+    ]))
+    # %%bash body isn't Python and isn't SQL — drop it; keep the SparkSession cell.
+    assert len(cells) == 1
+    assert "SparkSession" in cells[0].source
+
+
+def test_timeit_cell_magic_keeps_python_body():
+    from spark_parser.input.notebook import _cells_from_ipynb_dict
+    cells = _cells_from_ipynb_dict(_ipynb_with([
+        "%%timeit\ndf.count()",
+    ]))
+    assert len(cells) == 1
+    assert cells[0].language == "python"
+    assert "df.count()" in cells[0].source
+
+
+def test_real_world_netflix_notebook_parses_without_syntax_error():
+    """The exact case the user hit: !pip install at the top of a notebook
+    caused zero stats and a 'invalid syntax' warning. Concatenated Python
+    must now ast.parse cleanly."""
+    import ast
+    from spark_parser.input.notebook import _cells_from_ipynb_dict
+    cells = _cells_from_ipynb_dict(_ipynb_with([
+        "!pip install pyspark",
+        "from pyspark.sql import SparkSession\nspark = SparkSession.builder.getOrCreate()",
+        'movies = spark.read.format("csv").option("header", "true").load("netflix_titles.csv")',
+        "df = movies.select('title', 'release_year', 'country', 'rating')",
+        "df2 = df.withColumn('year', df['release_year'].cast('int')).drop('release_year')",
+    ]))
+    py_src = "\n\n".join(c.source for c in cells if c.language == "python")
+    ast.parse(py_src)  # would raise SyntaxError before the fix
