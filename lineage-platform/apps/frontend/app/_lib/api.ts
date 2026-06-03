@@ -49,11 +49,15 @@ export interface TwsJob {
 }
 
 export interface ParseResponse {
-  id: string;
+  id: string | null;
   source_type: string;
   stats: Record<string, number>;
   duration_ms?: number;
   warnings?: { type: string; detail: string; line?: number | null }[];
+  // TWS files produce multiple top-level nodes (one per Schedule); the
+  // parser returns id=null and lists the schedule node ids here. Other
+  // parsers leave this unset and use id.
+  parsed_node_ids?: string[];
 }
 
 // Multi-file parse — used by /parse/multi. Per-file results + a

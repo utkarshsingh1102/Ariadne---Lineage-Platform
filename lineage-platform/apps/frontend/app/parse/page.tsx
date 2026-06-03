@@ -568,30 +568,38 @@ export default function ParsePage() {
                   View in File Explorer
                 </Button>
               </Link>
-              {result.id && (
-                <>
-                  <Link
-                    href={`/lineage?node_id=${encodeURIComponent(
-                      result.id,
-                    )}&direction=upstream`}
-                    style={{ textDecoration: "none" }}
-                  >
-                    <Button kind="tertiary" size="sm" renderIcon={ArrowRight}>
-                      Trace upstream
-                    </Button>
-                  </Link>
-                  <Link
-                    href={`/lineage?node_id=${encodeURIComponent(
-                      result.id,
-                    )}&direction=downstream`}
-                    style={{ textDecoration: "none" }}
-                  >
-                    <Button kind="ghost" size="sm" renderIcon={ArrowRight}>
-                      Trace downstream
-                    </Button>
-                  </Link>
-                </>
-              )}
+              {(() => {
+                // TWS returns id:null and puts the schedule id(s) in
+                // parsed_node_ids — every other parser uses .id. Take the
+                // first available so the Trace buttons render for both.
+                const traceId =
+                  result.id ?? result.parsed_node_ids?.[0] ?? null;
+                if (!traceId) return null;
+                return (
+                  <>
+                    <Link
+                      href={`/lineage?node_id=${encodeURIComponent(
+                        traceId,
+                      )}&direction=upstream`}
+                      style={{ textDecoration: "none" }}
+                    >
+                      <Button kind="tertiary" size="sm" renderIcon={ArrowRight}>
+                        Trace upstream
+                      </Button>
+                    </Link>
+                    <Link
+                      href={`/lineage?node_id=${encodeURIComponent(
+                        traceId,
+                      )}&direction=downstream`}
+                      style={{ textDecoration: "none" }}
+                    >
+                      <Button kind="ghost" size="sm" renderIcon={ArrowRight}>
+                        Trace downstream
+                      </Button>
+                    </Link>
+                  </>
+                );
+              })()}
             </ButtonSet>
           </Tile>
         </>
