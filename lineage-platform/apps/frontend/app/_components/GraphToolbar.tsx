@@ -3,13 +3,18 @@
 /**
  * Floating top-right toolbar for the lineage / explorer canvas.
  *
- *   - Zoom in / out / fit-to-view
- *   - Type-filter chips (Attribute / Connection / DataFrame / Source / Sink, …)
- *   - Search-to-focus: type a node name, press Enter → animate-centre the
- *     match (uses the existing ``focusToken`` channel into GraphCanvas).
+ * Layout (v0.3 — collapsible):
+ *   - Always-visible row: filter-toggle button + search input + active-query tags
+ *   - Collapsible body: type-filter chips (Attribute / Connection / DataFrame / …)
  *
- * The toolbar owns no canvas state — every action is a callback up to the
- * parent, which is also the source of truth for the active filter set.
+ * Search is **cumulative** — each Enter adds the term as a tag below the input
+ * and tells GraphCanvas to highlight every matching node in the entire graph.
+ * Click the × on a tag to remove that term; nodes that only matched that term
+ * lose the highlight. Highlights persist across pan/zoom and across multiple
+ * searches.
+ *
+ * Zoom controls used to live here; they moved to the bottom-right minimap area
+ * (see GraphZoomControls).
  */
 import { useState } from "react";
 import { getNodeDefinition } from "../_lib/node-definitions";
@@ -20,11 +25,12 @@ export interface GraphToolbarProps {
   /** All node-label strings present in the payload (chip list). */
   availableTypes: string[];
   onToggleType: (label: string) => void;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onFit: () => void;
-  /** Triggered when the user presses Enter on the search box. */
-  onSearch: (query: string) => void;
+  /** Active search terms; the toolbar renders one removable tag per entry. */
+  searchQueries: string[];
+  /** Called when the user presses Enter on a NEW term (not already in the list). */
+  onAddSearch: (query: string) => void;
+  /** Called when the user clicks × on a tag. */
+  onRemoveSearch: (query: string) => void;
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -43,54 +49,87 @@ export function GraphToolbar({
   visibleTypes,
   availableTypes,
   onToggleType,
-  onZoomIn,
-  onZoomOut,
-  onFit,
-  onSearch,
+  searchQueries,
+  onAddSearch,
+  onRemoveSearch,
 }: GraphToolbarProps) {
   const [query, setQuery] = useState("");
+  // Filter chips are hidden by default so the toolbar is compact; the user
+  // toggles them via the funnel button. Search + tag list stay visible.
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   return (
     <div className="graph-canvas-toolbar" role="toolbar" aria-label="Graph controls">
-      <div className="graph-canvas-toolbar__group" aria-label="Zoom">
+      <div className="graph-canvas-toolbar__row">
         <button
           type="button"
-          className="graph-canvas-toolbar__btn"
-          onClick={onZoomOut}
-          aria-label="Zoom out"
-          title="Zoom out"
+          className={
+            "graph-canvas-toolbar__filter-btn" +
+            (filtersOpen ? " graph-canvas-toolbar__filter-btn--on" : "")
+          }
+          onClick={() => setFiltersOpen((v) => !v)}
+          aria-expanded={filtersOpen}
+          aria-label={filtersOpen ? "Hide type filters" : "Show type filters"}
+          title={filtersOpen ? "Hide type filters" : "Show type filters"}
         >
-          −
+          {/* Funnel icon — inline SVG to avoid an extra import */}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" strokeWidth="2"
+               strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+          </svg>
+          {visibleTypes.size > 0 && filtersOpen === false && (
+            <span className="graph-canvas-toolbar__filter-badge">
+              {visibleTypes.size}
+            </span>
+          )}
         </button>
-        <button
-          type="button"
-          className="graph-canvas-toolbar__btn"
-          onClick={onFit}
-          aria-label="Fit to view"
-          title="Fit to view"
+
+        <form
+          className="graph-canvas-toolbar__search"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const q = query.trim();
+            if (!q) return;
+            // Don't add duplicates; just clear the input.
+            if (!searchQueries.includes(q)) onAddSearch(q);
+            setQuery("");
+          }}
         >
-          ⊡
-        </button>
-        <button
-          type="button"
-          className="graph-canvas-toolbar__btn"
-          onClick={onZoomIn}
-          aria-label="Zoom in"
-          title="Zoom in"
-        >
-          +
-        </button>
+          <input
+            type="search"
+            placeholder="Find a node…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search nodes (press Enter to add a highlight)"
+          />
+        </form>
       </div>
 
-      {availableTypes.length > 0 && (
+      {searchQueries.length > 0 && (
+        <div className="graph-canvas-toolbar__tags" role="list" aria-label="Active searches">
+          {searchQueries.map((q) => (
+            <span key={q} className="graph-canvas-toolbar__tag" role="listitem">
+              <span className="graph-canvas-toolbar__tag-text">{q}</span>
+              <button
+                type="button"
+                className="graph-canvas-toolbar__tag-x"
+                onClick={() => onRemoveSearch(q)}
+                aria-label={`Remove search term ${q}`}
+                title={`Remove "${q}"`}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {filtersOpen && availableTypes.length > 0 && (
         <div className="graph-canvas-toolbar__group" aria-label="Type filters">
           {availableTypes.map((t) => {
             const active = visibleTypes.has(t);
             const def = getNodeDefinition(t);
-            // Each chip is wrapped in a positioned span so the popover
-            // can anchor to it without touching the toolbar's flex layout.
-            // The popover is CSS-driven (show on :hover / :focus-within)
-            // so no React state is needed for the visibility toggle.
             return (
               <span key={t} className="graph-canvas-toolbar__chip-wrap">
                 <button
@@ -135,22 +174,6 @@ export function GraphToolbar({
           })}
         </div>
       )}
-
-      <form
-        className="graph-canvas-toolbar__search"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (query.trim()) onSearch(query.trim());
-        }}
-      >
-        <input
-          type="search"
-          placeholder="Find a node…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          aria-label="Search nodes"
-        />
-      </form>
     </div>
   );
 }

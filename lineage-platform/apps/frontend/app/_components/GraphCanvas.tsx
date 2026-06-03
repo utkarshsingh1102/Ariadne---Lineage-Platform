@@ -16,6 +16,7 @@ import {
 import { capFanout } from "../_lib/fanout_cap";
 import { GraphMinimap } from "./GraphMinimap";
 import { GraphToolbar } from "./GraphToolbar";
+import { GraphZoomControls } from "./GraphZoomControls";
 
 if (typeof window !== "undefined") {
   try {
@@ -292,36 +293,64 @@ export function GraphCanvas({
   }, [focusToken]);
 
   // -- Toolbar callbacks
-  const handleSearch = (q: string) => {
-    if (!cyRef.current) return;
+
+  // Cumulative search: every term added via the toolbar is kept here. The
+  // effect below recomputes `.highlighted` on the cy graph whenever this
+  // list changes — terms can be added or removed in any order and the
+  // highlight set always reflects "every node matching ANY active term".
+  const [searchQueries, setSearchQueries] = useState<string[]>([]);
+
+  function nodeMatchesTerm(node: any, term: string): boolean {
+    const needle = term.toLowerCase();
+    const props = (node.data("properties") as Record<string, any>) ?? {};
+    const candidates = [
+      String(node.id() ?? ""),
+      node.data("label"),
+      props.name,
+      props.fully_qualified_name,
+      props.var_name,
+      props.path,
+      props.caption,
+      props.title,
+    ]
+      .filter((s) => typeof s === "string")
+      .map((s) => String(s).toLowerCase());
+    return candidates.some((c) => c.includes(needle));
+  }
+
+  useEffect(() => {
     const cy = cyRef.current;
-    const needle = q.toLowerCase();
-    let hit: any = null;
-    cy.nodes().some((node) => {
-      const n = node as any;
-      const props = (n.data("properties") as Record<string, any>) ?? {};
-      const id = String(n.id() ?? "");
-      const candidates = [
-        id,
-        props.name,
-        props.fully_qualified_name,
-        props.var_name,
-        props.path,
-        props.caption,
-      ]
-        .filter((s) => typeof s === "string")
-        .map((s) => String(s).toLowerCase());
-      if (candidates.some((c) => c.includes(needle))) {
-        hit = n;
-        return true;
+    if (!cy) return;
+    // Clear previous highlights then re-apply based on current query set.
+    cy.nodes().removeClass("highlighted");
+    if (searchQueries.length === 0) return;
+    cy.nodes().forEach((node) => {
+      if (searchQueries.some((q) => nodeMatchesTerm(node, q))) {
+        node.addClass("highlighted");
       }
-      return false;
     });
-    if (hit) {
-      cy.animate({ center: { eles: hit }, zoom: 1.2 }, { duration: 400 });
-      hit.addClass("focused");
-      setTimeout(() => hit.removeClass("focused"), 1500);
+  }, [searchQueries, renderData]);
+
+  const handleAddSearch = (q: string) => {
+    setSearchQueries((prev) =>
+      prev.includes(q) ? prev : [...prev, q],
+    );
+    // Also animate-center the first match for this new term so the user
+    // immediately sees something. Subsequent matches are visible via the
+    // persistent .highlighted outline.
+    const cy = cyRef.current;
+    if (!cy) return;
+    const firstHit = cy.nodes().toArray().find((n) => nodeMatchesTerm(n, q));
+    if (firstHit) {
+      cy.animate(
+        { center: { eles: firstHit as any }, zoom: 1.2 },
+        { duration: 400 },
+      );
     }
+  };
+
+  const handleRemoveSearch = (q: string) => {
+    setSearchQueries((prev) => prev.filter((x) => x !== q));
   };
   const handleToggleType = (label: string) => {
     setVisibleTypes((prev) => {
@@ -344,10 +373,14 @@ export function GraphCanvas({
         visibleTypes={visibleTypes}
         availableTypes={allTypes}
         onToggleType={handleToggleType}
+        searchQueries={searchQueries}
+        onAddSearch={handleAddSearch}
+        onRemoveSearch={handleRemoveSearch}
+      />
+      <GraphZoomControls
         onZoomIn={() => cyRef.current?.zoom(cyRef.current.zoom() * 1.2)}
         onZoomOut={() => cyRef.current?.zoom(cyRef.current.zoom() / 1.2)}
         onFit={() => cyRef.current?.fit(undefined, 40)}
-        onSearch={handleSearch}
       />
       <GraphMinimap cy={cyRef.current} />
     </div>

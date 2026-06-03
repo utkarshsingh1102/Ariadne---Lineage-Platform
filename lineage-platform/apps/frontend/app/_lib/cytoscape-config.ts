@@ -540,6 +540,20 @@ export const cytoscapeStyles: Stylesheet[] = [
       "border-opacity": 1,
     },
   },
+  {
+    // PERSISTENT class added by the toolbar's cumulative search. Distinct
+    // colour from .focused (orange amber vs red) so the user can tell
+    // "I'm parked on this node" from "this node matched a saved search".
+    // Stays applied until the user removes the search term.
+    selector: "node.highlighted",
+    style: {
+      "border-width": 4,
+      "border-color": "#f1c21b",
+      "border-opacity": 1,
+      "border-style": "solid",
+      "z-index": 25,
+    } as any,
+  },
   // -- Lineage highlight on tap -------------------------------------------
   // Elements in the upstream+downstream closure of the tapped node get
   // .lin-on; everything else gets .lin-off (heavily faded so the active
