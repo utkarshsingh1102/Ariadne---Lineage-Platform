@@ -112,7 +112,11 @@ def parse(req: ParseRequest) -> ParseResponse:
             # Existing tests' graph_writer_mock auto-mocks write_topology so
             # the mock fixture still works without modification.
             if hasattr(gw, "write_topology"):
-                gw.write_topology(unit, deps, overwrite=req.overwrite)
+                gw.write_topology(
+                    unit, deps,
+                    overwrite=req.overwrite,
+                    file_path=req.file_path,
+                )
             else:
                 gw.write_schedules(schedules, overwrite=req.overwrite)
         if req.write_postgres:

@@ -23,7 +23,12 @@ from tws_parser.config import settings
 from tws_parser.graph import queries
 from tws_parser.models.domain import ParsedComposerUnit, ScheduleIR
 from tws_parser.parser.dependencies import ResolvedDependencies, resolve, resolve_full
-from tws_parser.utils.ids import file_watcher_id, resource_id, script_id
+from tws_parser.utils.ids import (
+    file_watcher_id,
+    resource_id,
+    script_id,
+    tws_file_id,
+)
 
 
 class GraphWriter:
@@ -62,6 +67,7 @@ class GraphWriter:
         deps: ResolvedDependencies | None = None,
         overwrite: bool = False,
         source_files: dict[str, list[str]] | None = None,
+        file_path: str | None = None,
     ) -> dict[str, int]:
         """Write the full TWS topology.
 
@@ -77,9 +83,11 @@ class GraphWriter:
             source_files = {}
         with self._session() as s:
             if overwrite:
-                self._delete_overwrites(s, unit)
+                self._delete_overwrites(s, unit, file_path)
             self._write_nodes(s, unit, source_files)
             self._write_relationships(s, unit, deps)
+            if file_path:
+                self._write_tws_file(s, unit, file_path)
         return {"nodes_written": _count_nodes(unit)}
 
     # ------------------------------------------------------------------
@@ -89,9 +97,16 @@ class GraphWriter:
     def _session(self) -> Session:
         return self.driver.session(database=self.database)
 
-    def _delete_overwrites(self, s: Session, unit: ParsedComposerUnit) -> None:
+    def _delete_overwrites(
+        self,
+        s: Session,
+        unit: ParsedComposerUnit,
+        file_path: str | None = None,
+    ) -> None:
         # Drop the per-stream subgraphs (v0.2 path) AND the per-schedule
         # subgraphs (v0.1 path) so both topology shapes are cleaned up.
+        # Also detach the :TwsFile node itself so a re-parse rebuilds the
+        # containment without leaving the old edge set.
         for stream in unit.job_streams:
             s.execute_write(
                 lambda tx, sid=stream.id: tx.run(
@@ -104,6 +119,32 @@ class GraphWriter:
                     queries.DELETE_SCHEDULE_SUBGRAPH, schedule_id=sid
                 )
             )
+        if file_path:
+            fid = tws_file_id(file_path)
+            s.execute_write(
+                lambda tx, _fid=fid: tx.run(
+                    "MATCH (f:TwsFile {id: $id}) DETACH DELETE f", id=_fid
+                )
+            )
+
+    def _write_tws_file(
+        self, s: Session, unit: ParsedComposerUnit, file_path: str,
+    ) -> None:
+        """Create/refresh the :TwsFile wrapper + CONTAINS_SCHEDULE edges."""
+        import os
+        from datetime import datetime, timezone
+
+        fid = tws_file_id(file_path)
+        rows_file = [{
+            "id": fid,
+            "name": os.path.basename(file_path),
+            "file_path": file_path,
+            "parsed_at": datetime.now(timezone.utc).isoformat(),
+            "schedule_count": len(unit.schedules),
+        }]
+        _batched(s, queries.MERGE_TWS_FILE, rows_file)
+        edges = [{"file_id": fid, "schedule_id": sc.id} for sc in unit.schedules]
+        _batched(s, queries.CONTAINS_SCHEDULE, edges)
 
     def _write_nodes(
         self,
@@ -421,6 +462,8 @@ def _count_nodes(unit: ParsedComposerUnit) -> int:
 
 
 _CONSTRAINTS = [
+    # v0.3 — one node per composer file
+    "CREATE CONSTRAINT tws_file_id IF NOT EXISTS FOR (f:TwsFile) REQUIRE f.id IS UNIQUE",
     # v0.1
     "CREATE CONSTRAINT schedule_id IF NOT EXISTS FOR (s:Schedule) REQUIRE s.id IS UNIQUE",
     "CREATE CONSTRAINT job_id IF NOT EXISTS FOR (j:Job) REQUIRE j.id IS UNIQUE",

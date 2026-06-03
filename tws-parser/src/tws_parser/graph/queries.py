@@ -174,9 +174,32 @@ SET f.path = row.path,
 """
 
 
+# v0.3 — :TwsFile is the file-level wrapper. One per uploaded composer
+# file; CONTAINS_SCHEDULE edges link it to every :Schedule produced from
+# that file. The /files endpoint addresses TwsFile so a multi-schedule
+# composer shows up as ONE entry (matching the Tableau/Qlik/Spark UX)
+# instead of N entries.
+MERGE_TWS_FILE = """
+UNWIND $rows AS row
+MERGE (f:TwsFile {id: row.id})
+SET f.name = row.name,
+    f.file_path = row.file_path,
+    f.parsed_at = row.parsed_at,
+    f.source_system = 'tws',
+    f.schedule_count = row.schedule_count
+"""
+
+
 # ---------------------------------------------------------------------------
 # Edge MERGEs
 # ---------------------------------------------------------------------------
+
+CONTAINS_SCHEDULE = """
+UNWIND $rows AS row
+MATCH (f:TwsFile {id: row.file_id})
+MATCH (s:Schedule {id: row.schedule_id})
+MERGE (f)-[:CONTAINS_SCHEDULE]->(s)
+"""
 
 CONTAINS_JOB = """
 UNWIND $rows AS row

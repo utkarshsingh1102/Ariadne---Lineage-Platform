@@ -83,3 +83,10 @@ def resource_id(name: str) -> str:
 
 def file_watcher_id(path: str) -> str:
     return make_id("file_watcher", path)
+
+
+def tws_file_id(path: str) -> str:
+    """One :TwsFile node per uploaded composer file. Keyed on the resolved
+    path so re-uploading the same file is idempotent and merges existing
+    schedule containment rather than orphaning the old node."""
+    return make_id("tws_file", path)

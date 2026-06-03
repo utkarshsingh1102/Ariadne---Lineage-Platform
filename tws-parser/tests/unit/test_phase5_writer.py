@@ -268,11 +268,12 @@ def test_runs_on_recovers_with_triggers_scheduled_by_emitted():
 def test_constraints_cover_all_v0_2_labels():
     from tws_parser.graph.writer import _CONSTRAINTS
 
-    # 5 v0.1 + 5 v0.2 = 10 uniqueness constraints
-    assert len(_CONSTRAINTS) == 10
+    # 5 v0.1 + 5 v0.2 + 1 v0.3 (TwsFile) = 11 uniqueness constraints
+    assert len(_CONSTRAINTS) == 11
     joined = "\n".join(_CONSTRAINTS)
     for lbl in ("Schedule", "Job", "Script", "Resource", "FileWatcher",
-                "Workstation", "JobStream", "Calendar", "Prompt", "EventRule"):
+                "Workstation", "JobStream", "Calendar", "Prompt", "EventRule",
+                "TwsFile"):
         assert f"({_var_for(lbl)}:{lbl})" in joined, (
             f"missing constraint for :{lbl}"
         )
@@ -284,6 +285,7 @@ def _var_for(label: str) -> str:
         "Schedule": "s", "Job": "j", "Script": "s", "Resource": "r",
         "FileWatcher": "f", "Workstation": "w", "JobStream": "js",
         "Calendar": "c", "Prompt": "p", "EventRule": "er",
+        "TwsFile": "f",
     }[label]
 
 

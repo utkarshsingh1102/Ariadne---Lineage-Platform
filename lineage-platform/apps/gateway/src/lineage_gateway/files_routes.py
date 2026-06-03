@@ -46,6 +46,25 @@ _PATH_REWRITES: list[tuple[str, Path]] = [
 ]
 
 
+async def _resolve_tws_label(source: str, primary: str, file_id: str) -> str:
+    """For TWS, return :TwsFile if a node with that id exists; else fall
+    back to :Schedule (legacy parses that predate the file wrapper). For
+    non-TWS sources, return the primary label unchanged.
+    """
+    if source != "tws":
+        return primary
+    cypher = "MATCH (n) WHERE n.id = $id RETURN labels(n)[0] AS lbl LIMIT 1"
+    try:
+        async with neo4j_client.session() as s:
+            row = await (await s.run(cypher, id=file_id)).single()
+    except Exception:
+        return primary
+    if row is None:
+        return primary
+    lbl = row["lbl"]
+    return lbl if lbl in {"TwsFile", "Schedule"} else primary
+
+
 def _resolve_host_path(persisted: str) -> Path:
     """Map a parser-container path back to the host filesystem.
 
@@ -97,15 +116,28 @@ _QUERIES: dict[str, str] = {
         "ORDER BY toLower(coalesce(n.name, n.id)) "
         "LIMIT 1000"
     ),
+    # v0.3 — :TwsFile is the file-level wrapper around N :Schedule nodes
+    # produced from one upload. We also union-in any :Schedule nodes that
+    # don't have a parent :TwsFile (legacy data parsed before the file
+    # node existed) so the Files page stays populated for old graphs.
     "tws": (
-        "MATCH (n:Schedule) "
-        "RETURN n.id AS id, "
-        "       coalesce(n.schedule_name, n.name, '<unnamed>') AS name, "
-        "       n.workstation AS workstation, "
-        "       n.scheduler AS scheduler, "
-        "       n.parsed_at AS parsed_at, "
+        "MATCH (f:TwsFile) "
+        "RETURN f.id AS id, "
+        "       f.name AS name, "
+        "       f.file_path AS file_path, "
+        "       f.schedule_count AS schedule_count, "
+        "       f.parsed_at AS parsed_at, "
+        "       'TwsFile' AS type "
+        "UNION "
+        "MATCH (s:Schedule) "
+        "WHERE NOT (s)<-[:CONTAINS_SCHEDULE]-(:TwsFile) "
+        "RETURN s.id AS id, "
+        "       coalesce(s.name, '<unnamed>') AS name, "
+        "       NULL AS file_path, "
+        "       1 AS schedule_count, "
+        "       s.parsed_at AS parsed_at, "
         "       'Schedule' AS type "
-        "ORDER BY toLower(coalesce(n.schedule_name, n.name, n.id)) "
+        "ORDER BY toLower(coalesce(name, id)) "
         "LIMIT 1000"
     ),
 }
@@ -147,7 +179,10 @@ _DELETE_LABEL: dict[str, str] = {
     "tableau": "TableauWorkbook",
     "qlikview": "QlikScript",
     "spark": "SparkScript",
-    "tws": "Schedule",
+    # v0.3 — :TwsFile is the new file-level wrapper. Legacy parses that
+    # only produced :Schedule still appear in the listing via the UNION
+    # above; the delete here matches the same id-shape (file-or-schedule).
+    "tws": "TwsFile",
 }
 
 # Per-source containment chain. Variable-length expansion picks up nested
@@ -165,7 +200,12 @@ _DELETE_CONTAINMENT: dict[str, str] = {
         "|HAS_ATTRIBUTE|HAS_CONSTRAINT|STORED_AS|FEEDS_OBJECT"
     ),
     "spark": "CONTAINS_DATAFRAME|HAS_FIELD",
-    "tws": "CONTAINS_JOB|CONTAINS_COMPONENT|CALLS_SCRIPT|HAS_RESOURCE",
+    # TwsFile → Schedule → Jobs/Components → Scripts/Resources.
+    "tws": (
+        "CONTAINS_SCHEDULE|CONTAINS_JOB|CONTAINS_COMPONENT"
+        "|CALLS_SCRIPT|HAS_RESOURCE|EXECUTES|REQUIRES_RESOURCE"
+        "|WAITS_FOR_PROMPT|WAITS_FOR_FILE|HOSTS_STREAM|SCHEDULED_BY"
+    ),
 }
 
 
@@ -184,6 +224,9 @@ async def delete_file(source: str, file_id: str) -> dict[str, Any]:
             status_code=400,
             detail=f"unknown source: {source!r} (expected one of {sorted(_DELETE_LABEL)})",
         )
+    # For TWS, a row in the file list may carry either label depending on
+    # whether the parse produced a :TwsFile wrapper. Probe both.
+    label = await _resolve_tws_label(source, label, file_id)
     rel_chain = _DELETE_CONTAINMENT[source]
     # Step 1: confirm the file exists (so we can return 404 cleanly).
     # Step 2: collect + delete its exclusive subgraph.
@@ -258,6 +301,8 @@ async def bulk_delete_files(req: BulkDeleteRequest) -> dict[str, Any]:
     async with neo4j_client.session() as s:
         for item in req.files:
             label = _DELETE_LABEL.get(item.source)
+            if label is not None:
+                label = await _resolve_tws_label(item.source, label, item.file_id)
             if label is None:
                 results.append({
                     "source": item.source,
@@ -328,6 +373,7 @@ _SOURCE_LABEL: dict[str, str] = {
     "tableau": "TableauWorkbook",
     "qlikview": "QlikScript",
     "spark": "SparkScript",
+    "tws": "TwsFile",
 }
 
 
