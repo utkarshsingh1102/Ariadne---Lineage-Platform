@@ -1,7 +1,15 @@
 name: lineage-platform
 
+# YAML anchor so every long-lived service inherits the same restart policy.
+# Without this, containers don't auto-resume after a host reboot or an EC2
+# stop/start cycle — Docker daemon comes back but the compose containers stay
+# stopped. neo4j-init is the only intentional exception (it's a one-shot).
+x-restart-policy: &restart_policy
+  restart: unless-stopped
+
 services:
   neo4j:
+    <<: *restart_policy
     image: neo4j:5.20-community
     container_name: lineage-neo4j
     # Remapped to 7475/7688 to coexist with other local Neo4j instances on 7474/7687.
@@ -45,6 +53,7 @@ services:
     restart: "no"
 
   postgres:
+    <<: *restart_policy
     image: postgres:16-alpine
     container_name: lineage-postgres
     ports:
@@ -68,6 +77,7 @@ services:
   # ===========================================================================
 
   tableau-parser:
+    <<: *restart_policy
     build:
       context: ../tableau-parser
       dockerfile: Dockerfile
@@ -90,6 +100,7 @@ services:
         condition: service_completed_successfully
 
   tws-parser:
+    <<: *restart_policy
     build:
       context: ../tws-parser
       dockerfile: Dockerfile
@@ -122,6 +133,7 @@ services:
         condition: service_healthy
 
   qlikview-parser:
+    <<: *restart_policy
     build:
       context: ../qlikview-parser
       dockerfile: Dockerfile
@@ -144,6 +156,7 @@ services:
         condition: service_completed_successfully
 
   spark-parser:
+    <<: *restart_policy
     build:
       context: ../spark-parser
       dockerfile: Dockerfile
@@ -166,6 +179,7 @@ services:
         condition: service_completed_successfully
 
   gateway:
+    <<: *restart_policy
     build:
       context: ./apps/gateway
       dockerfile: Dockerfile
@@ -208,6 +222,7 @@ services:
         condition: service_completed_successfully
 
   frontend:
+    <<: *restart_policy
     build:
       context: ./apps/frontend
       dockerfile: Dockerfile
