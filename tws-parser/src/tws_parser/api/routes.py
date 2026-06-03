@@ -135,7 +135,7 @@ def parse(req: ParseRequest) -> ParseResponse:
         "jobs": sum(len(s.jobs) for s in schedules),
         "follows_dependencies": len(deps.job_dependencies),
         "schedule_dependencies": len(deps.schedule_dependencies),
-        "resources": len({n for s in schedules for j in s.jobs for n, _ in j.needs}),
+        "resources": len(unit.resources),
         "file_watchers": len({p for s in schedules for j in s.jobs for p in j.opens}),
         "unresolved_dependencies": sum(
             1 for w in deps.warnings if w.type == "unresolved_dependency"
