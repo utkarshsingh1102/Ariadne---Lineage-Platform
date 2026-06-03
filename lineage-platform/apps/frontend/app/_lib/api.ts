@@ -386,6 +386,32 @@ export const api = {
     }
     return r.json();
   },
+
+  bulkDeleteFiles: async (
+    items: { source: string; file_id: string }[],
+  ): Promise<{
+    requested: number;
+    succeeded: number;
+    failed: number;
+    nodes_deleted: number;
+    results: {
+      source: string;
+      file_id: string;
+      deleted: boolean;
+      nodes_deleted: number;
+      error?: string;
+    }[];
+  }> => {
+    const r = await fetch(`${GATEWAY}/files/bulk-delete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ files: items }),
+    });
+    if (!r.ok) {
+      throw new Error(`POST /files/bulk-delete → ${r.status}: ${await r.text()}`);
+    }
+    return r.json();
+  },
 };
 
 export const GATEWAY_URL = GATEWAY;

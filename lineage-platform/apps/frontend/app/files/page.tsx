@@ -105,6 +105,14 @@ function FilesPageInner() {
     { name: string; nodes: number } | null
   >(null);
 
+  // Bulk-delete state — separate from the single-file flow so the two modals
+  // can coexist and one's confirmation/loading doesn't interfere with the other.
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkDeleteResult, setBulkDeleteResult] = useState<
+    { requested: number; succeeded: number; failed: number; nodes: number } | null
+  >(null);
+
   function toggleChecked(source: string, entry: FileEntry) {
     setCheckedIds((prev) => {
       const next = new Set(prev);
@@ -155,6 +163,48 @@ function FilesPageInner() {
       setConfirmDelete(null);
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function performBulkDelete() {
+    if (checkedEntries.size === 0) return;
+    setBulkDeleting(true);
+    setError(null);
+    const items = Array.from(checkedEntries.values()).map((s) => ({
+      source: s.source,
+      file_id: s.entry.id,
+    }));
+    const deletedIds = new Set(items.map((it) => it.file_id));
+    try {
+      const r = await api.bulkDeleteFiles(items);
+      setBulkDeleteResult({
+        requested: r.requested,
+        succeeded: r.succeeded,
+        failed: r.failed,
+        nodes: r.nodes_deleted,
+      });
+      // Clear the multi-select for everything we just deleted.
+      setCheckedIds((prev) => {
+        const next = new Set(prev);
+        for (const id of deletedIds) next.delete(id);
+        return next;
+      });
+      setCheckedEntries((prev) => {
+        const next = new Map(prev);
+        for (const id of deletedIds) next.delete(id);
+        return next;
+      });
+      // Drop the right-pane selection if it was one of the deleted files.
+      if (selected && deletedIds.has(selected.entry.id)) {
+        setSelected(null);
+      }
+      setConfirmBulkDelete(false);
+      await refresh();
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+      setConfirmBulkDelete(false);
+    } finally {
+      setBulkDeleting(false);
     }
   }
 
@@ -323,6 +373,77 @@ function FilesPageInner() {
             hideCloseButton
             title="Shared nodes are kept"
             subtitle="Tables and Connections referenced by this file stay in the graph — other files may still depend on them."
+            style={{ maxWidth: "none" }}
+          />
+        </Modal>
+      )}
+
+      {bulkDeleteResult && (
+        <ToastNotification
+          kind={bulkDeleteResult.failed === 0 ? "success" : "warning"}
+          title={
+            bulkDeleteResult.failed === 0
+              ? "Files deleted"
+              : "Some files weren't deleted"
+          }
+          subtitle={
+            `${bulkDeleteResult.succeeded}/${bulkDeleteResult.requested} files removed` +
+            ` — ${bulkDeleteResult.nodes} node${
+              bulkDeleteResult.nodes === 1 ? "" : "s"
+            } cleared from Neo4j` +
+            (bulkDeleteResult.failed > 0
+              ? ` (${bulkDeleteResult.failed} failed — check console for detail)`
+              : "")
+          }
+          timeout={6000}
+          onClose={() => setBulkDeleteResult(null)}
+        />
+      )}
+
+      {confirmBulkDelete && (
+        <Modal
+          open
+          danger
+          modalHeading={`Delete ${checkedEntries.size} file${
+            checkedEntries.size === 1 ? "" : "s"
+          }?`}
+          primaryButtonText={bulkDeleting ? "Deleting…" : "Delete all"}
+          secondaryButtonText="Cancel"
+          primaryButtonDisabled={bulkDeleting}
+          onRequestClose={() => !bulkDeleting && setConfirmBulkDelete(false)}
+          onRequestSubmit={performBulkDelete}
+        >
+          <p style={{ marginBottom: "0.75rem" }}>
+            This removes the following files and every DataFrame /
+            Worksheet / Job / Attribute they uniquely own from Neo4j.
+          </p>
+          <ul
+            style={{
+              maxHeight: "12rem",
+              overflowY: "auto",
+              border: "1px solid var(--cds-border-subtle-01, #e0e0e0)",
+              borderRadius: "0.25rem",
+              padding: "0.5rem 0.75rem",
+              marginBottom: "0.75rem",
+              fontSize: "0.8125rem",
+              lineHeight: 1.5,
+            }}
+          >
+            {Array.from(checkedEntries.values()).map((s) => (
+              <li key={s.entry.id}>
+                <Tag type="gray" size="sm" style={{ marginRight: "0.5rem" }}>
+                  {SOURCE_LABEL[s.source] ?? s.source}
+                </Tag>
+                {s.entry.name}
+              </li>
+            ))}
+          </ul>
+          <InlineNotification
+            kind="info"
+            lowContrast
+            hideCloseButton
+            title="Shared nodes are kept"
+            subtitle="Tables and Connections referenced by any of these files stay in the graph — other files may still depend on them."
             style={{ maxWidth: "none" }}
           />
         </Modal>
@@ -506,6 +627,7 @@ function FilesPageInner() {
           selected={Array.from(checkedEntries.values())}
           onClear={clearChecked}
           onOpenLineage={openCombinedLineage}
+          onDeleteSelected={() => setConfirmBulkDelete(true)}
         />
       )}
     </>
@@ -665,10 +787,12 @@ function MultiSelectFooter({
   selected,
   onClear,
   onOpenLineage,
+  onDeleteSelected,
 }: {
   selected: SelectedItem[];
   onClear: () => void;
   onOpenLineage: () => void;
+  onDeleteSelected: () => void;
 }) {
   return (
     <div
@@ -707,6 +831,15 @@ function MultiSelectFooter({
       </span>
       <Button kind="ghost" size="sm" onClick={onClear}>
         Clear
+      </Button>
+      <Button
+        kind="danger--ghost"
+        size="sm"
+        renderIcon={TrashCan}
+        onClick={onDeleteSelected}
+        disabled={selected.length === 0}
+      >
+        Delete selected
       </Button>
       <Button
         kind="primary"

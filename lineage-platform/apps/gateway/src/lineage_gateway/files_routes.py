@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 from . import neo4j_client
 
@@ -219,6 +220,104 @@ async def delete_file(source: str, file_id: str) -> dict[str, Any]:
         "source": source,
         "file_id": file_id,
         "nodes_deleted": deleted,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Bulk delete — apply the same per-file delete subgraph walk to N files in one
+# request. Each file is processed independently inside its own try block so
+# that one bad id (e.g. already deleted, unknown source) doesn't take the rest
+# of the batch down. The response is a per-file roll-up plus aggregate counts.
+# ---------------------------------------------------------------------------
+
+class _BulkDeleteItem(BaseModel):
+    source: str = Field(..., description="tableau | tws | qlikview | spark")
+    file_id: str = Field(..., description="The node id of the file to delete")
+
+
+class BulkDeleteRequest(BaseModel):
+    files: list[_BulkDeleteItem] = Field(
+        ..., min_length=1, max_length=500,
+        description="1-500 files to delete. Larger batches should page client-side.",
+    )
+
+
+@router.post("/bulk-delete")
+async def bulk_delete_files(req: BulkDeleteRequest) -> dict[str, Any]:
+    """Delete N parsed files in one round-trip.
+
+    Each file is processed independently using the same per-source subgraph
+    walk as the single-file DELETE — shared :Table / :Connection nodes stay
+    intact. A failure on one file (unknown source, 404, Neo4j error) is
+    recorded in ``results`` for that file but doesn't abort the batch.
+    """
+    results: list[dict[str, Any]] = []
+    succeeded = 0
+    nodes_total = 0
+
+    async with neo4j_client.session() as s:
+        for item in req.files:
+            label = _DELETE_LABEL.get(item.source)
+            if label is None:
+                results.append({
+                    "source": item.source,
+                    "file_id": item.file_id,
+                    "deleted": False,
+                    "nodes_deleted": 0,
+                    "error": f"unknown source: {item.source!r}",
+                })
+                continue
+            rel_chain = _DELETE_CONTAINMENT[item.source]
+            exists_cypher = f"MATCH (f:`{label}` {{id: $file_id}}) RETURN f LIMIT 1"
+            delete_cypher = (
+                f"MATCH (f:`{label}` {{id: $file_id}}) "
+                f"OPTIONAL MATCH (f)-[:{rel_chain}*1..6]->(child) "
+                "WHERE child IS NOT NULL "
+                "  AND NOT child:Table "
+                "  AND NOT child:Connection "
+                "  AND child <> f "
+                "WITH f, collect(DISTINCT child) AS children "
+                "WITH f, children, size(children) AS n_children "
+                "FOREACH (n IN children | DETACH DELETE n) "
+                "DETACH DELETE f "
+                "RETURN n_children + 1 AS nodes_deleted"
+            )
+            try:
+                exists = await (await s.run(exists_cypher, file_id=item.file_id)).single()
+                if exists is None:
+                    results.append({
+                        "source": item.source,
+                        "file_id": item.file_id,
+                        "deleted": False,
+                        "nodes_deleted": 0,
+                        "error": f"no :{label} with id={item.file_id!r}",
+                    })
+                    continue
+                record = await (await s.run(delete_cypher, file_id=item.file_id)).single()
+                deleted = int(record["nodes_deleted"]) if record else 0
+                nodes_total += deleted
+                succeeded += 1
+                results.append({
+                    "source": item.source,
+                    "file_id": item.file_id,
+                    "deleted": True,
+                    "nodes_deleted": deleted,
+                })
+            except Exception as e:
+                results.append({
+                    "source": item.source,
+                    "file_id": item.file_id,
+                    "deleted": False,
+                    "nodes_deleted": 0,
+                    "error": f"neo4j delete failed: {e}",
+                })
+
+    return {
+        "requested": len(req.files),
+        "succeeded": succeeded,
+        "failed": len(req.files) - succeeded,
+        "nodes_deleted": nodes_total,
+        "results": results,
     }
 
 
