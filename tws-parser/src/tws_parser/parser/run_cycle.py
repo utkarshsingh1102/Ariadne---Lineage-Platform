@@ -35,7 +35,11 @@ def normalise(name: str, start_time: str | None = None) -> RunCycle:
             out.cron_equivalent = f"{minute} {hour} * * *"
         return out
 
-    if key in {"EVERY_WEEKDAY", "WEEKDAY", "WEEKDAYS"}:
+    if key in {
+        "EVERY_WEEKDAY", "WEEKDAY", "WEEKDAYS",
+        "WORKDAY", "WORKDAYS", "BUSINESS_DAY", "BUSINESS_DAYS",
+        "BUSINESSDAY", "BUSINESSDAYS",
+    }:
         out.frequency = "weekly"
         out.days_of_week = ["MON", "TUE", "WED", "THU", "FRI"]
         if minute is not None:

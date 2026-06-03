@@ -263,6 +263,14 @@ class ScheduleIR:
     carry_forward: bool = False
     source_file: str = ""
     raw_definition: str = ""
+    # v0.3 mirrors of JobStream fields so users viewing the :Schedule node
+    # in lineage see complete timing without switching to :JobStream.
+    deadline: str | None = None
+    on_until: str | None = None
+    every: int | None = None
+    limit: int | None = None
+    run_cycles: list[RunCycleRef] = field(default_factory=list)
+    days_of_week: list[str] = field(default_factory=list)
 
     schedule_follows: list[ScheduleFollows] = field(default_factory=list)
     jobs: list[JobIR] = field(default_factory=list)

@@ -178,6 +178,10 @@ class GraphWriter:
             "cron_equivalent": sc.cron_equivalent,
             "valid_from": sc.valid_from, "valid_to": sc.valid_to,
             "start_time": sc.start_time, "end_time": sc.end_time,
+            "deadline": sc.deadline, "on_until": sc.on_until,
+            "every": sc.every, "limit": sc.limit,
+            "run_cycles": _encode_run_cycles(sc.run_cycles),
+            "days_of_week": list(sc.days_of_week) if sc.days_of_week else None,
             "priority": sc.priority, "carry_forward": sc.carry_forward,
             "source_files": files_for(sc.id),
         } for sc in unit.schedules])

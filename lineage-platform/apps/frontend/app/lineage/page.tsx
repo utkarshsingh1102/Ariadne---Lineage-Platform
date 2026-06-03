@@ -86,6 +86,7 @@ const TWS_TIMING_KEYS = new Set<string>([
   "run_cycle",
   "run_cycles",
   "cron_equivalent",
+  "days_of_week",
   "carry_forward",
   "priority",
   "limit",
@@ -93,6 +94,25 @@ const TWS_TIMING_KEYS = new Set<string>([
   "scheduler",
   "workstation",
 ]);
+
+const DAY_LONG: Record<string, string> = {
+  MON: "Mon",
+  TUE: "Tue",
+  WED: "Wed",
+  THU: "Thu",
+  FRI: "Fri",
+  SAT: "Sat",
+  SUN: "Sun",
+};
+
+function formatDaysOfWeek(v: unknown): string | null {
+  if (Array.isArray(v) && v.length > 0) {
+    return v
+      .map((d) => DAY_LONG[String(d).toUpperCase()] ?? String(d))
+      .join(", ");
+  }
+  return null;
+}
 
 function orderedProps(
   props: Record<string, any>,
@@ -1081,6 +1101,10 @@ function ScheduleSection({
     rows.push(["Workstation", properties["workstation"]]);
     rows.push(["Scheduler", properties["scheduler"]]);
     rows.push(["Run cycle (raw)", properties["run_cycle"]]);
+    rows.push([
+      "Days",
+      formatDaysOfWeek(properties["days_of_week"]),
+    ]);
     rows.push(["Cron equivalent", properties["cron_equivalent"]]);
     rows.push(["Start time (AT)", properties["start_time"]]);
     rows.push(["End time (UNTIL)", properties["end_time"]]);

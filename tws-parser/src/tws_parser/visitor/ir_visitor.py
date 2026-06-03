@@ -34,6 +34,33 @@ from tws_parser.parser import run_cycle, script_resolver
 _CALENDAR_REF_RE = re.compile(r"\bCALENDAR\s*=\s*([A-Za-z_][A-Za-z0-9_]*)", re.IGNORECASE)
 
 
+_RRULE_BYDAY_RE = re.compile(r"BYDAY\s*=\s*([A-Z,]+)", re.IGNORECASE)
+_RRULE_DAY_MAP = {
+    "MO": "MON", "TU": "TUE", "WE": "WED", "TH": "THU",
+    "FR": "FRI", "SA": "SAT", "SU": "SUN",
+}
+
+
+def _days_from_run_cycles(run_cycles) -> list[str]:
+    """Best-effort: pull BYDAY=... from any non-EXCEPT RRULE and return
+    a normalised three-letter day list (MON..SUN). Returns [] when no
+    RRULE in the list carries BYDAY."""
+    for rc in run_cycles:
+        if rc.is_except or not rc.rrule:
+            continue
+        m = _RRULE_BYDAY_RE.search(rc.rrule)
+        if not m:
+            continue
+        days: list[str] = []
+        for tok in m.group(1).split(","):
+            tok = tok.strip().upper()
+            if tok in _RRULE_DAY_MAP:
+                days.append(_RRULE_DAY_MAP[tok])
+        if days:
+            return days
+    return []
+
+
 def _extract_calendars_from_rrule(rrule: str) -> list[str]:
     """Pull out ``CALENDAR=NAME`` references from an RRULE-style string.
     Real composer files attach calendar references inside the rule body
@@ -301,6 +328,7 @@ class TWSIRVisitor(TWSComposerParserVisitor):
         if run_cycle_phrase:
             rc = run_cycle.normalise(run_cycle_phrase, start_time=schedule.start_time)
             schedule.cron_equivalent = rc.cron_equivalent
+            schedule.days_of_week = list(rc.days_of_week)
 
         for i, jd in enumerate(ctx.jobDefinition()):
             job = self._build_job(jd, schedule.id, workstation, name, order=i)
@@ -315,6 +343,24 @@ class TWSIRVisitor(TWSComposerParserVisitor):
         stream.carry_forward = schedule.carry_forward
         stream.valid_from = schedule.valid_from
         stream.valid_to = schedule.valid_to
+
+        # And back the other way — fields that only the stream collects
+        # (run_cycles list, deadline, on_until, every, limit) get mirrored
+        # onto Schedule so the lineage details panel shows full timing on
+        # either node.
+        schedule.run_cycles = list(stream.run_cycles)
+        schedule.deadline = stream.deadline
+        schedule.on_until = stream.on_until
+        schedule.every = stream.every
+        schedule.limit = stream.limit
+
+        # If the cron wasn't derivable from the name alone (no AT clause)
+        # but the RRULE has a usable FREQ + BYDAY, fall back to parsing
+        # the RRULE for days. WORKDAYS-style names already set days_of_week
+        # via normalise(); this catches the cases where the run-cycle
+        # name itself was opaque (custom).
+        if not schedule.days_of_week:
+            schedule.days_of_week = _days_from_run_cycles(stream.run_cycles)
 
         return schedule, stream
 
