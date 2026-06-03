@@ -182,6 +182,8 @@ class GraphWriter:
             "every": sc.every, "limit": sc.limit,
             "run_cycles": _encode_run_cycles(sc.run_cycles),
             "days_of_week": list(sc.days_of_week) if sc.days_of_week else None,
+            "days_of_month": list(sc.days_of_month) if sc.days_of_month else None,
+            "frequency": sc.frequency,
             "priority": sc.priority, "carry_forward": sc.carry_forward,
             "source_files": files_for(sc.id),
         } for sc in unit.schedules])

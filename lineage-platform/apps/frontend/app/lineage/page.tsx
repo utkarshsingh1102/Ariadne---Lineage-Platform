@@ -87,6 +87,8 @@ const TWS_TIMING_KEYS = new Set<string>([
   "run_cycles",
   "cron_equivalent",
   "days_of_week",
+  "days_of_month",
+  "frequency",
   "carry_forward",
   "priority",
   "limit",
@@ -107,11 +109,38 @@ const DAY_LONG: Record<string, string> = {
 
 function formatDaysOfWeek(v: unknown): string | null {
   if (Array.isArray(v) && v.length > 0) {
+    if (v.length === 7) return "Daily (every day)";
     return v
       .map((d) => DAY_LONG[String(d).toUpperCase()] ?? String(d))
       .join(", ");
   }
   return null;
+}
+
+function formatDaysOfMonth(v: unknown): string | null {
+  if (!Array.isArray(v) || v.length === 0) return null;
+  return v
+    .map((d) => {
+      const n = Number(d);
+      if (n === -1) return "Last day";
+      if (!Number.isFinite(n)) return String(d);
+      const suffix =
+        n % 10 === 1 && n !== 11
+          ? "st"
+          : n % 10 === 2 && n !== 12
+            ? "nd"
+            : n % 10 === 3 && n !== 13
+              ? "rd"
+              : "th";
+      return `${n}${suffix}`;
+    })
+    .join(", ");
+}
+
+function formatFrequency(v: unknown): string | null {
+  if (typeof v !== "string" || !v) return null;
+  const cap = v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
+  return cap;
 }
 
 function orderedProps(
@@ -1101,9 +1130,11 @@ function ScheduleSection({
     rows.push(["Workstation", properties["workstation"]]);
     rows.push(["Scheduler", properties["scheduler"]]);
     rows.push(["Run cycle (raw)", properties["run_cycle"]]);
+    rows.push(["Frequency", formatFrequency(properties["frequency"])]);
+    rows.push(["Days", formatDaysOfWeek(properties["days_of_week"])]);
     rows.push([
-      "Days",
-      formatDaysOfWeek(properties["days_of_week"]),
+      "Days of month",
+      formatDaysOfMonth(properties["days_of_month"]),
     ]);
     rows.push(["Cron equivalent", properties["cron_equivalent"]]);
     rows.push(["Start time (AT)", properties["start_time"]]);

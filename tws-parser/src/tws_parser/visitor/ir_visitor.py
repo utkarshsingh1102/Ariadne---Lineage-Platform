@@ -35,6 +35,46 @@ _CALENDAR_REF_RE = re.compile(r"\bCALENDAR\s*=\s*([A-Za-z_][A-Za-z0-9_]*)", re.I
 
 
 _RRULE_BYDAY_RE = re.compile(r"BYDAY\s*=\s*([A-Z,]+)", re.IGNORECASE)
+_RRULE_BYMONTHDAY_RE = re.compile(r"BYMONTHDAY\s*=\s*(-?\d+)", re.IGNORECASE)
+_RRULE_FREQ_RE = re.compile(r"FREQ\s*=\s*([A-Z]+)", re.IGNORECASE)
+
+
+def _month_days_from_run_cycles(run_cycles) -> list[int]:
+    for rc in run_cycles:
+        if rc.is_except or not rc.rrule:
+            continue
+        m = _RRULE_BYMONTHDAY_RE.search(rc.rrule)
+        if m:
+            try:
+                return [int(m.group(1))]
+            except ValueError:
+                continue
+    return []
+
+
+def _freq_from_run_cycles(run_cycles) -> str | None:
+    for rc in run_cycles:
+        if rc.is_except or not rc.rrule:
+            continue
+        m = _RRULE_FREQ_RE.search(rc.rrule)
+        if m:
+            return m.group(1).lower()
+    return None
+
+
+def _split_hhmm(s: str) -> tuple[str | None, str | None]:
+    """``"HH:MM"`` -> ``(minute, hour)`` as strings, matching run_cycle._split_time
+    but returning the actual values the visitor needs locally."""
+    if not s or ":" not in s:
+        return (None, None)
+    try:
+        hh, mm = s.split(":")
+        return (str(int(mm)), str(int(hh)))
+    except ValueError:
+        return (None, None)
+
+
+
 _RRULE_DAY_MAP = {
     "MO": "MON", "TU": "TUE", "WE": "WED", "TH": "THU",
     "FR": "FRI", "SA": "SAT", "SU": "SUN",
@@ -329,6 +369,8 @@ class TWSIRVisitor(TWSComposerParserVisitor):
             rc = run_cycle.normalise(run_cycle_phrase, start_time=schedule.start_time)
             schedule.cron_equivalent = rc.cron_equivalent
             schedule.days_of_week = list(rc.days_of_week)
+            schedule.days_of_month = list(rc.days_of_month)
+            schedule.frequency = rc.frequency or None
 
         for i, jd in enumerate(ctx.jobDefinition()):
             job = self._build_job(jd, schedule.id, workstation, name, order=i)
@@ -361,6 +403,23 @@ class TWSIRVisitor(TWSComposerParserVisitor):
         # name itself was opaque (custom).
         if not schedule.days_of_week:
             schedule.days_of_week = _days_from_run_cycles(stream.run_cycles)
+        if not schedule.days_of_month:
+            schedule.days_of_month = _month_days_from_run_cycles(stream.run_cycles)
+        if not schedule.frequency:
+            schedule.frequency = _freq_from_run_cycles(stream.run_cycles)
+        # Derive cron from RRULE-extracted fields when normalise() came up
+        # empty (the run-cycle name was opaque but the RRULE was specific).
+        if not schedule.cron_equivalent and schedule.start_time:
+            minute, hour = _split_hhmm(schedule.start_time)
+            if minute is not None:
+                if schedule.days_of_month and schedule.days_of_month[0] > 0:
+                    day = schedule.days_of_month[0]
+                    schedule.cron_equivalent = f"{minute} {hour} {day} * *"
+                elif schedule.days_of_week:
+                    cron_dow = ",".join(
+                        run_cycle._cron_dow(d) for d in schedule.days_of_week
+                    )
+                    schedule.cron_equivalent = f"{minute} {hour} * * {cron_dow}"
 
         return schedule, stream
 

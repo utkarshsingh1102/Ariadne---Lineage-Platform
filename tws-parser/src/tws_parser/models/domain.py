@@ -271,6 +271,8 @@ class ScheduleIR:
     limit: int | None = None
     run_cycles: list[RunCycleRef] = field(default_factory=list)
     days_of_week: list[str] = field(default_factory=list)
+    days_of_month: list[int] = field(default_factory=list)
+    frequency: str | None = None
 
     schedule_follows: list[ScheduleFollows] = field(default_factory=list)
     jobs: list[JobIR] = field(default_factory=list)

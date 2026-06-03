@@ -31,8 +31,30 @@ def normalise(name: str, start_time: str | None = None) -> RunCycle:
 
     if key in {"EVERYDAY", "DAILY", "EVERY_DAY"}:
         out.frequency = "daily"
+        # "Daily" covers all 7 weekdays; populate so the UI shows a value
+        # instead of a confusing blank for the "Days" field.
+        out.days_of_week = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
         if minute is not None:
             out.cron_equivalent = f"{minute} {hour} * * *"
+        return out
+
+    # MONTHSTART / FIRSTOFMONTH / MONTH_START — common composer aliases
+    # for "1st of every month". The RRULE on these is usually
+    # FREQ=MONTHLY;BYMONTHDAY=1 but we recognise the bare name too.
+    if key in {"MONTHSTART", "MONTH_START", "FIRSTOFMONTH", "FIRST_OF_MONTH",
+               "FIRST_DAY_OF_MONTH", "FIRSTDAYOFMONTH"}:
+        out.frequency = "monthly"
+        out.days_of_month = [1]
+        if minute is not None:
+            out.cron_equivalent = f"{minute} {hour} 1 * *"
+        return out
+
+    if key in {"MONTHEND", "MONTH_END", "LASTOFMONTH", "LAST_OF_MONTH",
+               "EOM", "LASTDAYOFMONTH"}:
+        # Cron doesn't have a "last day of month" token; surface frequency
+        # and a synthetic days_of_month=[-1] sentinel for the UI.
+        out.frequency = "monthly"
+        out.days_of_month = [-1]
         return out
 
     if key in {
