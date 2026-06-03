@@ -29,6 +29,18 @@ from tws_parser.models.domain import (
 from tws_parser.parser import run_cycle, script_resolver
 
 
+def _on_until_text(ctx) -> str | None:
+    """Return the ONUNTIL action (SUPPR / CANC / CONT) on a deadlineClause
+    or untilClause as an uppercase string, or None when no ONUNTIL tail is
+    present. The grammar now wraps the action in an ``onUntilAction`` rule.
+    """
+    action = ctx.onUntilAction() if hasattr(ctx, "onUntilAction") else None
+    if action is None:
+        return None
+    txt = action.getText().upper()
+    return "CONT" if txt == "CONTINUE" else txt
+
+
 def _safe_int(node) -> int | None:
     """Coerce an ANTLR INT terminal to int, tolerating recovery placeholders.
 
@@ -292,10 +304,21 @@ class TWSIRVisitor(TWSComposerParserVisitor):
             schedule.start_time = _normalise_time(prop.atClause().timeLiteral().getText())
             return
         if prop.untilClause() is not None:
-            schedule.end_time = _normalise_time(prop.untilClause().timeLiteral().getText())
+            uc = prop.untilClause()
+            schedule.end_time = _normalise_time(uc.timeLiteral().getText())
+            action = _on_until_text(uc)
+            if action is not None:
+                stream.on_until = action
             return
         if prop.deadlineClause() is not None:
-            stream.deadline = _normalise_time(prop.deadlineClause().timeLiteral().getText())
+            dc = prop.deadlineClause()
+            stream.deadline = _normalise_time(dc.timeLiteral().getText())
+            action = _on_until_text(dc)
+            if action is not None:
+                stream.on_until = action
+            return
+        if prop.everyClause() is not None:
+            stream.every = _safe_int(prop.everyClause().INT())
             return
         if prop.carryForwardClause() is not None:
             schedule.carry_forward = True

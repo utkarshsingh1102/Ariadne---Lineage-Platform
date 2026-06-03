@@ -125,6 +125,7 @@ scheduleProperty
     | matchingClause         // v0.3 — MATCHING PREVIOUS
     | needsClause            // v0.3 — NEEDS at schedule level (was job-only)
     | vartableClause         // v0.3 — VARTABLE <name>
+    | everyClause            // v0.3 — schedule-level EVERY N (rerun cadence)
     | priorityClause
     | limitClause
     | validFromClause
@@ -180,13 +181,16 @@ exceptRunCycleClause
     ;
 
 atClause            : AT timeLiteral ;
-// v0.2 — UNTIL gains an optional ONUNTIL CANC tail.
-untilClause         : UNTIL timeLiteral ( ONUNTIL CANC )? ;
+// v0.2 — UNTIL gains an optional ONUNTIL action.
+// v0.3 — accept all three legal ONUNTIL actions on UNTIL too (SUPPR/CANC/CONT).
+untilClause         : UNTIL timeLiteral ( ONUNTIL onUntilAction )? ;
 // v0.3 — DEADLINE may carry an ONUNTIL action: ``DEADLINE 0600 ONUNTIL SUPPR``
-// means "if the deadline passes, suppress this job"; ``CANC`` cancels it.
+// means "if the deadline passes, suppress this job"; ``CANC`` cancels it;
+// ``CONT`` lets it run on past deadline.
 deadlineClause
-    : DEADLINE timeLiteral ( ONUNTIL ( SUPPR | CANC ) )?
+    : DEADLINE timeLiteral ( ONUNTIL onUntilAction )?
     ;
+onUntilAction        : SUPPR | CANC | CONT | CONTINUE ;
 carryForwardClause  : CARRYFORWARD ;
 priorityClause      : PRIORITY INT ;
 limitClause         : LIMIT INT ;

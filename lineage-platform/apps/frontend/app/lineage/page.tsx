@@ -80,6 +80,7 @@ const TWS_TIMING_KEYS = new Set<string>([
   "start_time",
   "end_time",
   "deadline",
+  "on_until",
   "valid_from",
   "valid_to",
   "run_cycle",
@@ -1084,10 +1085,12 @@ function ScheduleSection({
     rows.push(["Start time (AT)", properties["start_time"]]);
     rows.push(["End time (UNTIL)", properties["end_time"]]);
     rows.push(["Deadline", properties["deadline"]]);
+    rows.push(["On-until action", properties["on_until"]]);
     rows.push(["Valid from", properties["valid_from"]]);
     rows.push(["Valid to", properties["valid_to"]]);
     rows.push(["Priority", properties["priority"]]);
     rows.push(["Carry forward", properties["carry_forward"]]);
+    rows.push(["Rerun cadence (every, min)", properties["every"]]);
     rows.push(["Limit", properties["limit"]]);
   } else {
     rows.push(["Workstation", properties["workstation"]]);

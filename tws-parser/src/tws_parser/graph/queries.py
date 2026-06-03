@@ -98,6 +98,8 @@ SET js.name = row.name,
     js.valid_from = row.valid_from,
     js.valid_to = row.valid_to,
     js.run_cycles = row.run_cycles,
+    js.every = row.every,
+    js.on_until = row.on_until,
     js.source_system = 'tws',
     js.source_files = [x IN coalesce(js.source_files, []) WHERE NOT x IN row.source_files] + row.source_files
 """

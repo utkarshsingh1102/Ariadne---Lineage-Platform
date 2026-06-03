@@ -166,6 +166,8 @@ class GraphWriter:
             "valid_from": js.valid_from,
             "valid_to": js.valid_to,
             "run_cycles": _encode_run_cycles(js.run_cycles),
+            "every": js.every,
+            "on_until": js.on_until,
             "source_files": files_for(js.id),
         } for js in unit.job_streams])
 

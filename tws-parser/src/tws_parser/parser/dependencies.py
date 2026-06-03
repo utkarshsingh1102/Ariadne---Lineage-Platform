@@ -278,12 +278,24 @@ def resolve_full(unit: ParsedComposerUnit) -> ResolvedDependencies:
                     prompt_id=prompt_id(prompt_name),
                     prompt_name=prompt_name,
                 ))
-                if prompt_name not in prompt_names:
-                    out.warnings.append(Warning(
-                        type="unresolved_prompt",
-                        detail=f"Job {job.qualified_name} PROMPT {prompt_name} "
-                               "(not declared in this file)",
+                if prompt_name in prompt_names:
+                    continue
+                # v0.3 — inline literal prompts (``PROMPT "Continue? (YES/NO)"``)
+                # are anonymously declared at the call site. Synthesize a
+                # Prompt so the WAITS_FOR_PROMPT edge resolves and skip the
+                # "not declared in this file" warning.
+                if _is_inline_prompt(prompt_name):
+                    from tws_parser.models.domain import PromptIR
+                    unit.prompts.append(PromptIR(
+                        name=prompt_name, text=prompt_name,
                     ))
+                    prompt_names.add(prompt_name)
+                    continue
+                out.warnings.append(Warning(
+                    type="unresolved_prompt",
+                    detail=f"Job {job.qualified_name} PROMPT {prompt_name} "
+                           "(not declared in this file)",
+                ))
 
             for path in job.opens:
                 out.opens_edges.append(OpensEdge(
@@ -458,3 +470,20 @@ def _unresolved_detail(job: JobIR, ref: FollowsRef) -> str:
         f"Job {job.qualified_name} FOLLOWS {ref.target_qualified} "
         f"(target not in stream {job.workstation}#{job.stream})"
     )
+
+
+def _is_inline_prompt(name: str) -> bool:
+    """Heuristic: a TWS prompt identifier is a single word (letters, digits,
+    underscores). Anything containing whitespace, punctuation, or characters
+    that can't appear in an identifier is an inline literal — typically a
+    full English sentence quoted as the PROMPT argument.
+    """
+    if not name:
+        return False
+    if any(c.isspace() for c in name):
+        return True
+    for c in name:
+        if c.isalnum() or c == "_":
+            continue
+        return True
+    return False

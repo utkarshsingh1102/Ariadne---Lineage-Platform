@@ -61,6 +61,7 @@ LIMIT        : [Ll][Ii][Mm][Ii][Tt];
 EXCEPT       : [Ee][Xx][Cc][Ee][Pp][Tt];
 CANC         : [Cc][Aa][Nn][Cc];
 SUPPR        : [Ss][Uu][Pp][Pp][Rr];
+CONT         : [Cc][Oo][Nn][Tt];
 AFTER        : [Aa][Ff][Tt][Ee][Rr];
 
 // v0.3 — schedule-level modifiers + job-level conditional routing keywords.

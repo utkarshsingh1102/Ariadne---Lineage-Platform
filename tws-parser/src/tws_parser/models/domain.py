@@ -95,6 +95,12 @@ class JobStreamIR:
     carry_forward: bool = False
     valid_from: str | None = None
     valid_to: str | None = None
+    # v0.3 — schedule-level EVERY N (rerun cadence in minutes) and the
+    # ONUNTIL action carried on DEADLINE/UNTIL (one of "SUPPR" | "CANC" |
+    # "CONT"). Both surface on the JobStream node so the lineage UI can
+    # render them in the Schedule & timing section.
+    every: int | None = None
+    on_until: str | None = None
     jobs: list["JobIR"] = field(default_factory=list)
     id: str = ""
 
