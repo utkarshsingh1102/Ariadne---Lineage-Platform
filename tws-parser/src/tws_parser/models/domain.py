@@ -101,6 +101,10 @@ class JobStreamIR:
     # render them in the Schedule & timing section.
     every: int | None = None
     on_until: str | None = None
+    # v0.3 — schedule-level NEEDS (stream-wide resource gates). list of
+    # (resource_name, quantity) tuples; the orchestrator promotes these to
+    # ResourceIRs and stream→resource edges in the writer.
+    stream_needs: list[tuple[str, int]] = field(default_factory=list)
     jobs: list["JobIR"] = field(default_factory=list)
     id: str = ""
 
@@ -212,6 +216,10 @@ class JobIR:
     recovery_after: str | None = None        # qualified job name for RECOVERY AFTER
     every: int | None = None                 # rerun cadence minutes
     prompts: list[str] = field(default_factory=list)
+    # v0.3 — ``ON <jobname> RC=N`` and ``ON <jobname> VAL <expr>`` conditional
+    # branches. Each entry is (target_job_name, condition_text). The resolver
+    # turns these into RecoveryEdge with recovery_action=condition_text.
+    on_conditions: list[tuple[str, str]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if not self.id:

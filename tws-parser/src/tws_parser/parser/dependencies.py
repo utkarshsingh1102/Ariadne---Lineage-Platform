@@ -333,6 +333,27 @@ def resolve_full(unit: ParsedComposerUnit) -> ResolvedDependencies:
                     schedule=stream.name,
                 ))
 
+            # ON <job> RC=N / VAL <expr> — conditional branches.
+            # Modelled as RecoveryEdge with the condition as recovery_action
+            # (the target job runs WHEN the condition holds on the source).
+            for target_name, cond in job.on_conditions:
+                target = in_stream.get(target_name)
+                if target is None:
+                    out.warnings.append(Warning(
+                        type="unresolved_recovery",
+                        detail=f"Job {job.qualified_name} ON {target_name} "
+                               f"{cond} (target not in stream "
+                               f"{job.workstation}#{job.stream})",
+                    ))
+                    continue
+                out.recovery_edges.append(RecoveryEdge(
+                    from_job_id=job.id,
+                    to_recovery_job_id=target.id,
+                    recovery_action=cond,
+                    from_qualified=job.qualified_name,
+                    to_qualified=target.qualified_name,
+                ))
+
             # RECOVERY AFTER — resolve the recovery job and emit RecoveryEdge.
             if job.recovery_after:
                 recov_ref = _follows_ref_from_text(job.recovery_after)
@@ -355,18 +376,31 @@ def resolve_full(unit: ParsedComposerUnit) -> ResolvedDependencies:
                     ))
 
         # SCHEDULED_BY — one edge per RunCycleRef with a calendar reference.
+        # Refs come either as the structured ``CALENDAR parserId`` modifier
+        # (``rc.calendar_name``) OR as a ``CALENDAR=NAME`` token inside the
+        # RRULE string (``rc.rrule``).
+        emitted_cal: set[str] = set()
         for rc in stream.run_cycles:
+            cal_names: list[str] = []
             if rc.calendar_name:
+                cal_names.append(rc.calendar_name)
+            if rc.rrule:
+                cal_names.extend(_extract_calendars_from_rrule_str(rc.rrule))
+            for cal_name in cal_names:
+                key = (stream.id, cal_name)
+                if key in emitted_cal:
+                    continue
+                emitted_cal.add(key)
                 out.scheduled_by_edges.append(ScheduledByEdge(
                     job_stream_id=stream.id,
-                    calendar_id=calendar_id(rc.calendar_name),
-                    calendar_name=rc.calendar_name,
+                    calendar_id=calendar_id(cal_name),
+                    calendar_name=cal_name,
                 ))
-                if rc.calendar_name not in calendar_names:
+                if cal_name not in calendar_names:
                     out.warnings.append(Warning(
                         type="unresolved_calendar",
                         detail=f"Stream {stream.qualified_name} ON RUNCYCLE "
-                               f"... CALENDAR {rc.calendar_name} (calendar not "
+                               f"... CALENDAR {cal_name} (calendar not "
                                "declared in this file)",
                     ))
 
@@ -470,6 +504,17 @@ def _unresolved_detail(job: JobIR, ref: FollowsRef) -> str:
         f"Job {job.qualified_name} FOLLOWS {ref.target_qualified} "
         f"(target not in stream {job.workstation}#{job.stream})"
     )
+
+
+_CALENDAR_REF_RE = __import__("re").compile(
+    r"\bCALENDAR\s*=\s*([A-Za-z_][A-Za-z0-9_]*)", __import__("re").IGNORECASE
+)
+
+
+def _extract_calendars_from_rrule_str(rrule: str) -> list[str]:
+    if not rrule:
+        return []
+    return _CALENDAR_REF_RE.findall(rrule)
 
 
 def _is_inline_prompt(name: str) -> bool:

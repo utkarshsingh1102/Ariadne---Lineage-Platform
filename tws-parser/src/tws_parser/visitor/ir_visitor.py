@@ -10,6 +10,8 @@ The Neo4j writer in Phase 5 consumes this.
 
 from __future__ import annotations
 
+import re
+
 from tws_parser.generated.TWSComposerParser import TWSComposerParser
 from tws_parser.generated.TWSComposerParserVisitor import TWSComposerParserVisitor
 from tws_parser.models.domain import (
@@ -27,6 +29,20 @@ from tws_parser.models.domain import (
     WorkstationIR,
 )
 from tws_parser.parser import run_cycle, script_resolver
+
+
+_CALENDAR_REF_RE = re.compile(r"\bCALENDAR\s*=\s*([A-Za-z_][A-Za-z0-9_]*)", re.IGNORECASE)
+
+
+def _extract_calendars_from_rrule(rrule: str) -> list[str]:
+    """Pull out ``CALENDAR=NAME`` references from an RRULE-style string.
+    Real composer files attach calendar references inside the rule body
+    (``"CALENDAR=CORP_HOLIDAYS"``) rather than via the structured
+    ``CALENDAR parserId`` modifier.
+    """
+    if not rrule:
+        return []
+    return _CALENDAR_REF_RE.findall(rrule)
 
 
 def _on_until_text(ctx) -> str | None:
@@ -109,6 +125,37 @@ class TWSIRVisitor(TWSComposerParserVisitor):
                 unit.schedules.append(schedule)
             if stream is not None:
                 unit.job_streams.append(stream)
+
+        # v0.3 — synthesize implicit resources from schedule-level NEEDS
+        # clauses. The user's COMPLEX_ETL fixture has ``NEEDS 4 INGEST_SLOTS``
+        # / ``NEEDS 1 RECON_LOCK`` at schedule level; without this they'd
+        # never surface as :Resource nodes in the graph.
+        declared_resources = {r.name for r in unit.resources}
+        for stream in unit.job_streams:
+            for res_name, qty in stream.stream_needs:
+                if res_name in declared_resources:
+                    continue
+                unit.resources.append(ResourceIR(name=res_name, quantity=qty))
+                declared_resources.add(res_name)
+
+        # v0.3 — synthesize implicit calendars from ``CALENDAR=NAME`` tokens
+        # found inside RRULE-style strings on ON RUNCYCLE / NOTON RUNCYCLE
+        # clauses. The structured ``CALENDAR parserId`` modifier already
+        # surfaces — this catches the embedded form.
+        declared_calendars = {c.name for c in unit.calendars}
+        seen_in_rrules: set[str] = set()
+        for stream in unit.job_streams:
+            for rc in stream.run_cycles:
+                if rc.calendar_name and rc.calendar_name not in declared_calendars:
+                    seen_in_rrules.add(rc.calendar_name)
+                if rc.rrule:
+                    for name in _extract_calendars_from_rrule(rc.rrule):
+                        if name not in declared_calendars:
+                            seen_in_rrules.add(name)
+        for name in sorted(seen_in_rrules):
+            unit.calendars.append(CalendarIR(name=name))
+            declared_calendars.add(name)
+
         return unit
 
     # ------------------------------------------------------------------
@@ -289,6 +336,23 @@ class TWSIRVisitor(TWSComposerParserVisitor):
                 rc.rrule = _unquote(on.STRING().getText())
             stream.run_cycles.append(rc)
             return
+        if prop.notOnClause() is not None:
+            # v0.3 — ``NOTON RUNCYCLE NAME "rule"`` is an exclusion rule.
+            # Capture as a RunCycleRef with is_except=True so the existing
+            # calendar-from-rrule synthesis picks up any embedded
+            # ``CALENDAR=`` reference.
+            no = prop.notOnClause()
+            rc = RunCycleRef(
+                name=_phrase_text(no.runCyclePhrase()),
+                raw_phrase=_phrase_text(no.runCyclePhrase()),
+                is_except=True,
+            )
+            if no.CALENDAR() is not None and no.parserId() is not None:
+                rc.calendar_name = no.parserId().getText()
+            if no.STRING() is not None:
+                rc.rrule = _unquote(no.STRING().getText())
+            stream.run_cycles.append(rc)
+            return
         if prop.exceptRunCycleClause() is not None:
             ex = prop.exceptRunCycleClause()
             rc = RunCycleRef(
@@ -319,6 +383,14 @@ class TWSIRVisitor(TWSComposerParserVisitor):
             return
         if prop.everyClause() is not None:
             stream.every = _safe_int(prop.everyClause().INT())
+            return
+        if prop.needsClause() is not None:
+            # v0.3 — schedule-level NEEDS (stream-wide resource gate).
+            qty = _safe_int(prop.needsClause().INT()) or 0
+            full = prop.needsClause().qualifiedName().getText()
+            res = full.rsplit("#", 1)[-1].split(".")[0]
+            if res:
+                stream.stream_needs.append((res, qty))
             return
         if prop.carryForwardClause() is not None:
             schedule.carry_forward = True
@@ -405,6 +477,17 @@ class TWSIRVisitor(TWSComposerParserVisitor):
                     job.opens.append(p)
             elif prop.everyClause() is not None:
                 job.every = _safe_int(prop.everyClause().INT())
+            elif prop.onConditionClause() is not None:
+                oc = prop.onConditionClause()
+                target = oc.parserId().getText() if oc.parserId() is not None else ""
+                if target:
+                    if oc.RC() is not None and oc.INT() is not None:
+                        cond = f"RC={oc.INT().getText()}"
+                    elif oc.valExpression() is not None:
+                        cond = oc.valExpression().getText()
+                    else:
+                        cond = ""
+                    job.on_conditions.append((target, cond))
             elif prop.promptDepClause() is not None:
                 # v0.3 — PROMPT may name a prompt OR carry an inline STRING.
                 pd = prop.promptDepClause()
