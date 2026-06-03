@@ -3,7 +3,7 @@
 Operational commands for the Ariadne single-EC2 deploy. Run all `aws ec2 ...`
 commands from your laptop (not from inside the EC2).
 
-**Instance ID:** `i-05c75dd163ae68142`
+**Instance ID:** `i-0a9aca16b25310eee`
 **Public IP:** `34.227.165.65` (Elastic IP — stable across stop/start)
 
 > If you ever lose track of these, run `terraform output` from `deploy/aws/`.
@@ -13,7 +13,7 @@ commands from your laptop (not from inside the EC2).
 ## Stop the instance (save money)
 
 ```bash
-aws ec2 stop-instances --instance-ids i-05c75dd163ae68142
+aws ec2 stop-instances --instance-ids i-0a9aca16b25310eee
 ```
 
 - Bill drops from ~$1/day to ~$0.08/day (EBS storage only)
@@ -22,7 +22,7 @@ aws ec2 stop-instances --instance-ids i-05c75dd163ae68142
 
 Wait for it to fully stop:
 ```bash
-aws ec2 wait instance-stopped --instance-ids i-05c75dd163ae68142
+aws ec2 wait instance-stopped --instance-ids i-0a9aca16b25310eee
 ```
 
 ---
@@ -30,12 +30,12 @@ aws ec2 wait instance-stopped --instance-ids i-05c75dd163ae68142
 ## Start the instance
 
 ```bash
-aws ec2 start-instances --instance-ids i-05c75dd163ae68142
+aws ec2 start-instances --instance-ids i-0a9aca16b25310eee
 ```
 
 Wait until it's fully running and the stack is healthy:
 ```bash
-aws ec2 wait instance-running --instance-ids i-05c75dd163ae68142
+aws ec2 wait instance-running --instance-ids i-0a9aca16b25310eee
 
 # Then poll the gateway health endpoint until it answers (~30-60 seconds
 # after instance-running because Docker takes time to bring containers up):
@@ -55,7 +55,7 @@ EIP is the same, so all your URLs still work.
 
 ```bash
 aws ec2 describe-instances \
-  --instance-ids i-05c75dd163ae68142 \
+  --instance-ids i-0a9aca16b25310eee \
   --query 'Reservations[0].Instances[0].State.Name' \
   --output text
 ```
