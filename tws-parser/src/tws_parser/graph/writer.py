@@ -14,6 +14,7 @@ calls this; the Postgres writer still uses the v0.1 ScheduleIR shape.
 
 from __future__ import annotations
 
+import json
 from typing import Iterable
 
 from neo4j import Driver, Session
@@ -146,7 +147,10 @@ class GraphWriter:
             "source_files": files_for(er.id),
         } for er in unit.event_rules])
 
-        # Job streams (v0.2 topology layer)
+        # Job streams (v0.2 topology layer). ``run_cycles`` is JSON-encoded
+        # because Neo4j primitives don't support lists of structs; the frontend
+        # ``ScheduleSection`` decodes it back into a list. Empty list → null
+        # so the UI doesn't show a stray ``[]``.
         _batched(s, queries.MERGE_JOB_STREAM, [{
             "id": js.id,
             "name": js.name,
@@ -161,6 +165,7 @@ class GraphWriter:
             "carry_forward": js.carry_forward,
             "valid_from": js.valid_from,
             "valid_to": js.valid_to,
+            "run_cycles": _encode_run_cycles(js.run_cycles),
             "source_files": files_for(js.id),
         } for js in unit.job_streams])
 
@@ -341,6 +346,22 @@ class GraphWriter:
         _batched(s, queries.SCHEDULED_BY, [{
             "stream_id": e.job_stream_id, "calendar_id": e.calendar_id,
         } for e in deps.scheduled_by_edges])
+
+
+def _encode_run_cycles(run_cycles: list) -> str | None:
+    if not run_cycles:
+        return None
+    payload = [
+        {
+            "name": rc.name,
+            "raw_phrase": rc.raw_phrase,
+            "calendar_name": rc.calendar_name,
+            "rrule": rc.rrule,
+            "is_except": rc.is_except,
+        }
+        for rc in run_cycles
+    ]
+    return json.dumps(payload, separators=(",", ":"))
 
 
 def _workstation_id_for(name: str, unit: ParsedComposerUnit) -> str | None:

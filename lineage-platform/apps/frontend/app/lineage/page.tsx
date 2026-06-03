@@ -73,9 +73,33 @@ const PROP_PRIORITY = [
 // ``transform_chain`` is rendered by ``TransformChainSection`` below.
 const PROPS_RENDERED_ELSEWHERE = new Set<string>(["transform_chain"]);
 
-function orderedProps(props: Record<string, any>): [string, unknown][] {
+// TWS timing keys — surfaced in a dedicated ``ScheduleSection`` so users
+// don't have to spot them among ids / source_files / raw_definition. The
+// section pulls these out for :Schedule / :JobStream / :Job nodes.
+const TWS_TIMING_KEYS = new Set<string>([
+  "start_time",
+  "end_time",
+  "deadline",
+  "valid_from",
+  "valid_to",
+  "run_cycle",
+  "run_cycles",
+  "cron_equivalent",
+  "carry_forward",
+  "priority",
+  "limit",
+  "every",
+  "scheduler",
+  "workstation",
+]);
+
+function orderedProps(
+  props: Record<string, any>,
+  extraSkip?: Set<string>,
+): [string, unknown][] {
   const entries = Object.entries(props).filter(
-    ([k]) => !PROPS_RENDERED_ELSEWHERE.has(k),
+    ([k]) =>
+      !PROPS_RENDERED_ELSEWHERE.has(k) && !(extraSkip && extraSkip.has(k)),
   );
   const priority = new Map<string, number>(
     PROP_PRIORITY.map((k, i) => [k, i]),
@@ -86,6 +110,19 @@ function orderedProps(props: Record<string, any>): [string, unknown][] {
     if (ai !== bi) return ai - bi;
     return a.localeCompare(b);
   });
+}
+
+function isTwsScheduleLikeNode(node: SelectedNode | null): boolean {
+  if (!node) return false;
+  if (node.source_system !== "tws") return false;
+  const lbl = (node.label ?? "").toLowerCase();
+  if (lbl === "schedule" || lbl === "jobstream" || lbl === "job") return true;
+  const labels = (node.labels ?? []).map((l) => l.toLowerCase());
+  return (
+    labels.includes("schedule") ||
+    labels.includes("jobstream") ||
+    labels.includes("job")
+  );
 }
 
 export default function LineagePage() {
@@ -507,14 +544,24 @@ function LineagePageInner() {
                     </div>
                   </div>
 
+                  {isTwsScheduleLikeNode(selectedNode) && (
+                    <ScheduleSection
+                      label={selectedNode.label ?? ""}
+                      properties={selectedNode.properties ?? {}}
+                    />
+                  )}
+
                   <div className="lineage-sidebar__section">
                     <h4>Properties</h4>
                     <dl className="lineage-sidebar__kv">
-                      {orderedProps(selectedNode.properties ?? {}).map(
-                        ([k, v]) => (
-                          <ProprenderRow key={k} k={k} v={v} />
-                        ),
-                      )}
+                      {orderedProps(
+                        selectedNode.properties ?? {},
+                        isTwsScheduleLikeNode(selectedNode)
+                          ? TWS_TIMING_KEYS
+                          : undefined,
+                      ).map(([k, v]) => (
+                        <ProprenderRow key={k} k={k} v={v} />
+                      ))}
                     </dl>
                   </div>
 
@@ -985,6 +1032,115 @@ function TransformChainSection({
           </li>
         ))}
       </ol>
+    </div>
+  );
+}
+
+// TWS Schedule & Timing — rendered for :Schedule / :JobStream / :Job nodes.
+// Always renders when one of these labels is selected, even if every field
+// is null, so the user can SEE that timing wasn't specified rather than
+// wonder if the parser dropped it.
+function ScheduleSection({
+  label,
+  properties,
+}: {
+  label: string;
+  properties: Record<string, unknown>;
+}) {
+  const fmt = (v: unknown): string => {
+    if (v === null || v === undefined || v === "") return "—";
+    if (typeof v === "boolean") return v ? "yes" : "no";
+    return String(v);
+  };
+
+  const isJob = label.toLowerCase() === "job";
+
+  // run_cycles is JSON-encoded on JobStream nodes; tolerate either array
+  // or string form.
+  const runCyclesRaw = properties["run_cycles"];
+  let runCycles: Array<{
+    name?: string;
+    rrule?: string;
+    calendar_name?: string;
+    is_except?: boolean;
+  }> = [];
+  if (Array.isArray(runCyclesRaw)) {
+    runCycles = runCyclesRaw as typeof runCycles;
+  } else if (typeof runCyclesRaw === "string" && runCyclesRaw.trim()) {
+    try {
+      const parsed = JSON.parse(runCyclesRaw);
+      if (Array.isArray(parsed)) runCycles = parsed;
+    } catch {
+      /* leave empty */
+    }
+  }
+
+  const rows: Array<[string, unknown]> = [];
+  if (!isJob) {
+    rows.push(["Workstation", properties["workstation"]]);
+    rows.push(["Scheduler", properties["scheduler"]]);
+    rows.push(["Run cycle (raw)", properties["run_cycle"]]);
+    rows.push(["Cron equivalent", properties["cron_equivalent"]]);
+    rows.push(["Start time (AT)", properties["start_time"]]);
+    rows.push(["End time (UNTIL)", properties["end_time"]]);
+    rows.push(["Deadline", properties["deadline"]]);
+    rows.push(["Valid from", properties["valid_from"]]);
+    rows.push(["Valid to", properties["valid_to"]]);
+    rows.push(["Priority", properties["priority"]]);
+    rows.push(["Carry forward", properties["carry_forward"]]);
+    rows.push(["Limit", properties["limit"]]);
+  } else {
+    rows.push(["Workstation", properties["workstation"]]);
+    rows.push(["Stream", properties["stream"]]);
+    rows.push(["Priority", properties["priority"]]);
+    rows.push(["Rerun cadence (every, min)", properties["every"]]);
+    rows.push(["Order in schedule", properties["order_in_schedule"]]);
+  }
+
+  return (
+    <div className="lineage-sidebar__section">
+      <h4>Schedule &amp; timing</h4>
+      <dl className="lineage-sidebar__kv">
+        {rows.map(([k, v]) => (
+          <ProprenderRow key={k} k={k} v={fmt(v)} />
+        ))}
+      </dl>
+      {runCycles.length > 0 && (
+        <div style={{ marginTop: "0.75rem" }}>
+          <h5
+            style={{
+              fontSize: "0.8125rem",
+              margin: "0 0 0.375rem 0",
+              color: "var(--cds-text-secondary)",
+            }}
+          >
+            Run cycles ({runCycles.length})
+          </h5>
+          <ul className="lineage-sidebar__cols">
+            {runCycles.map((rc, i) => (
+              <li key={i}>
+                <span className="lineage-sidebar__col-name">
+                  {rc.is_except ? "EXCEPT " : ""}
+                  {rc.name ?? "(unnamed)"}
+                </span>
+                {rc.calendar_name && (
+                  <span className="lineage-sidebar__col-type">
+                    calendar: {rc.calendar_name}
+                  </span>
+                )}
+                {rc.rrule && (
+                  <span
+                    className="lineage-sidebar__col-type"
+                    style={{ wordBreak: "break-all" }}
+                  >
+                    {rc.rrule}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
