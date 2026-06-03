@@ -82,3 +82,65 @@ def test_multiple_formats_in_one_script(pyspark_fixture):
 
     formats = {t.storage_format for df in ir.dataframes for t in df.reads_from}
     assert {"parquet", "delta", "jdbc"} <= formats
+
+
+# ---------------------------------------------------------------------------
+# Regression: spark.createDataFrame
+# Without recognising it the LHS variable never binds, so downstream
+# df.join() / df.write...  on that variable silently vanished. Discovered by
+# running 97 spark-examples files; pre-fix dropped every join in every file
+# that used createDataFrame.
+# ---------------------------------------------------------------------------
+
+def test_create_dataframe_binds_variable_so_downstream_joins_count(tmp_path):
+    from spark_parser.pyspark.visitor import parse_pyspark
+    f = tmp_path / "create_df.py"
+    f.write_text(
+        "from pyspark.sql import SparkSession\n"
+        "spark = SparkSession.builder.getOrCreate()\n"
+        "emp = [(1, 'Smith', 10), (2, 'Rose', 20)]\n"
+        "empCols = ['emp_id', 'name', 'dept_id']\n"
+        "empDF = spark.createDataFrame(data=emp, schema=empCols)\n"
+        "dept = [('Finance', 10), ('Sales', 20)]\n"
+        "deptCols = ['dept_name', 'dept_id']\n"
+        "deptDF = spark.createDataFrame(data=dept, schema=deptCols)\n"
+        "empDF.join(deptDF, empDF.dept_id == deptDF.dept_id, 'left').show()\n"
+        "empDF.join(deptDF, empDF.dept_id == deptDF.dept_id, 'inner').show()\n"
+    )
+    ir = parse_pyspark(str(f))
+    join_count = sum(len(df.joins) for df in ir.dataframes)
+    assert join_count == 2, f"expected 2 joins, got {join_count}"
+
+
+def test_create_dataframe_extracts_columns_from_schema_list(tmp_path):
+    """Schema as a list-literal of strings (the common pattern) should yield
+    AttributeIR fields on the DataFrame."""
+    from spark_parser.pyspark.visitor import parse_pyspark
+    f = tmp_path / "create_df_schema.py"
+    f.write_text(
+        "from pyspark.sql import SparkSession\n"
+        "spark = SparkSession.builder.getOrCreate()\n"
+        "data = [(1, 'a'), (2, 'b')]\n"
+        "df = spark.createDataFrame(data=data, schema=['id', 'label'])\n"
+    )
+    ir = parse_pyspark(str(f))
+    matching = [d for d in ir.dataframes if d.var_name == "df"]
+    assert matching, "df not bound — createDataFrame was not recognised"
+    field_names = [f.name for f in matching[0].fields]
+    assert field_names == ["id", "label"]
+
+
+def test_create_dataframe_no_upstream_source(tmp_path):
+    """In-memory data: createDataFrame must NOT create a phantom source
+    table (data is a Python literal, not a file/db read)."""
+    from spark_parser.pyspark.visitor import parse_pyspark
+    f = tmp_path / "create_df_no_src.py"
+    f.write_text(
+        "from pyspark.sql import SparkSession\n"
+        "spark = SparkSession.builder.getOrCreate()\n"
+        "df = spark.createDataFrame([(1,)], ['n'])\n"
+    )
+    ir = parse_pyspark(str(f))
+    matching = [d for d in ir.dataframes if d.var_name == "df"]
+    assert matching
+    assert matching[0].reads_from == [], "createDataFrame should not produce a source table"

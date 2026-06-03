@@ -978,6 +978,12 @@ class _PySparkVisitor:
             self._handle_terminal_methods(chain, df)
             return df
 
+        # ---- spark.createDataFrame(data, schema) -----------------------
+        if _is_spark_create_dataframe_call(chain, self.spark_var):
+            df = self._build_df_from_create_dataframe(chain, expected_name)
+            self._handle_terminal_methods(chain, df)
+            return df
+
         # ---- df.* (method chain rooted in a known var) -----------------
         if isinstance(chain[0], ast.Name) and chain[0].id in self.symbols:
             df = self._derive_from_chain(self.symbols[chain[0].id], chain, expected_name)
@@ -1347,6 +1353,42 @@ class _PySparkVisitor:
         tbl.connection = derive_connection("hive", None, table_arg=arg, database=self.default_db)
         self._stamp_read_line(tbl, call)
         df.reads_from.append(tbl)
+        return df
+
+    def _build_df_from_create_dataframe(
+        self, chain: list[ast.AST], name: str | None,
+    ) -> DataFrameIR:
+        """``spark.createDataFrame(data, schema)`` — in-memory DataFrame.
+
+        No upstream source table (the data is a Python literal), but we still
+        want to bind the LHS variable so downstream ``df.join(...)`` /
+        ``df.write...`` calls thread through. When the schema arg is a
+        statically-resolvable list of strings (``["a","b","c"]`` or a Name
+        referring to one tracked in ``list_constants``), we populate ``fields``
+        so attribute-level lineage works.
+        """
+        df = self._new_df(name or "__anon")
+        call = chain[0]
+        for n in chain:
+            if isinstance(n, ast.Call) and _call_attr_name(n) == "createDataFrame":
+                call = n
+                break
+
+        # Schema arg: 2nd positional, or `schema=...` kwarg.
+        schema_node: ast.AST | None = None
+        if len(call.args) >= 2:
+            schema_node = call.args[1]
+        for kw in call.keywords:
+            if kw.arg == "schema":
+                schema_node = kw.value
+                break
+
+        if schema_node is not None:
+            cols = self._resolve_list_value(schema_node)
+            if cols:
+                for col in cols:
+                    if isinstance(col, str):
+                        df.fields.append(AttributeIR(name=col))
         return df
 
     def _build_df_from_spark_sql(self, chain: list[ast.AST], name: str | None) -> DataFrameIR:
@@ -4051,6 +4093,20 @@ def _is_spark_sql_call(chain: list[ast.AST], spark_var: str) -> bool:
         return False
     if len(chain) >= 2 and isinstance(chain[1], ast.Call):
         return _call_attr_name(chain[1]) == "sql"
+    return False
+
+
+def _is_spark_create_dataframe_call(chain: list[ast.AST], spark_var: str) -> bool:
+    """``spark.createDataFrame(data, schema=...)`` — the dominant in-memory
+    DataFrame constructor in examples / tests. Without recognising it the
+    resulting DataFrame variable never binds to ``self.symbols``, so every
+    downstream ``df.join(...)`` / ``df.write...`` on that variable silently
+    drops out of the IR.
+    """
+    if not _chain_root_is(chain, spark_var):
+        return False
+    if len(chain) >= 2 and isinstance(chain[1], ast.Call):
+        return _call_attr_name(chain[1]) == "createDataFrame"
     return False
 
 

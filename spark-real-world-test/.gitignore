@@ -1,0 +1,7 @@
+# The cloned third-party corpus stays out of the repo — too much code that
+# isn't ours and would muddy the licensing story. `run_tests.py` re-clones on
+# demand, and RESULTS.md captures everything reviewers need.
+pyspark-examples/
+
+# Generated per-run artifact, regenerated on every `python3 run_tests.py`.
+results.json
