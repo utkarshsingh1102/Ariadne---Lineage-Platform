@@ -234,14 +234,15 @@ html, body, #__next {
   flex-wrap: wrap;
 }
 
-// Bottom-right zoom buttons — sit just above the minimap card.
+// Bottom-right zoom buttons — sit just above the minimap card, in a
+// single horizontal row (− ⊡ +).
 .graph-zoom-controls {
   position: absolute;
   bottom: calc(140px + 1.25rem); // height of minimap + padding
   right: 0.75rem;
   z-index: 20;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 0.25rem;
   background: var(--cds-layer-02);
   border: 1px solid var(--cds-border-subtle-01);
