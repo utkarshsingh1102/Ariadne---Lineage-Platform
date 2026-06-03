@@ -133,6 +133,34 @@ function FilesPageInner() {
     setCheckedEntries(new Map());
   }
 
+  // Batch select / deselect every item in a (source, items) group. Used by
+  // the select-all checkbox in FileList headers and the project-view source
+  // sub-section headers. Selection is global (persists across folder switches)
+  // so callers pass their own source so the entries map stays consistent.
+  function setManyChecked(
+    source: string,
+    entries: FileEntry[],
+    checked: boolean,
+  ) {
+    if (entries.length === 0) return;
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      for (const e of entries) {
+        if (checked) next.add(e.id);
+        else next.delete(e.id);
+      }
+      return next;
+    });
+    setCheckedEntries((prev) => {
+      const next = new Map(prev);
+      for (const e of entries) {
+        if (checked) next.set(e.id, { source, entry: e });
+        else next.delete(e.id);
+      }
+      return next;
+    });
+  }
+
   function openCombinedLineage() {
     if (checkedIds.size === 0) return;
     const ids = Array.from(checkedIds).map(encodeURIComponent).join(",");
@@ -558,6 +586,9 @@ function FilesPageInner() {
               onToggleChecked={(source, entry) =>
                 toggleChecked(source, entry)
               }
+              onSetSourceChecked={(source, entries, checked) =>
+                setManyChecked(source, entries, checked)
+              }
               onOpenWholeProject={() => {
                 const ids = activeProject.files.map((f) => f.neo4j_id);
                 router.push(
@@ -580,6 +611,9 @@ function FilesPageInner() {
               checkedIds={checkedIds}
               onToggleChecked={(entry) =>
                 toggleChecked(activeFolder, entry)
+              }
+              onSetAllChecked={(checked) =>
+                setManyChecked(activeFolder, index[activeFolder] ?? [], checked)
               }
               onSelect={(entry) =>
                 setSelected({ source: activeFolder, entry })
@@ -638,12 +672,16 @@ function ProjectView({
   project,
   checkedIds,
   onToggleChecked,
+  onSetSourceChecked,
   onOpenWholeProject,
   onDeleteProject,
 }: {
   project: ProjectDetail;
   checkedIds: Set<string>;
   onToggleChecked: (source: string, entry: FileEntry) => void;
+  onSetSourceChecked: (
+    source: string, entries: FileEntry[], checked: boolean,
+  ) => void;
   onOpenWholeProject: () => void;
   onDeleteProject: () => void;
 }) {
@@ -710,6 +748,14 @@ function ProjectView({
 
       {subSections.map((source) => {
         const files = project.by_source[source] ?? [];
+        const entries: FileEntry[] = files.map((f) => ({
+          id: f.neo4j_id,
+          name: f.file_name ?? f.neo4j_id,
+          type: source,
+        }));
+        const checkedHere = entries.filter((e) => checkedIds.has(e.id)).length;
+        const allChecked = entries.length > 0 && checkedHere === entries.length;
+        const someChecked = checkedHere > 0 && checkedHere < entries.length;
         return (
           <div key={source} style={{ marginBottom: "0.75rem" }}>
             <div
@@ -723,11 +769,38 @@ function ProjectView({
                 fontWeight: 600,
               }}
             >
+              <span
+                onClick={(e) => e.stopPropagation()}
+                style={{ display: "inline-flex" }}
+                title={
+                  allChecked
+                    ? "Deselect all in this source"
+                    : someChecked
+                      ? `${checkedHere}/${entries.length} selected — click to select all`
+                      : "Select all in this source"
+                }
+              >
+                <Checkbox
+                  id={`projchk-all-${source}`}
+                  labelText=""
+                  hideLabel
+                  checked={allChecked}
+                  indeterminate={someChecked}
+                  onChange={(_: any, { checked }: any) =>
+                    onSetSourceChecked(source, entries, !!checked)
+                  }
+                />
+              </span>
               <Folder size={14} />
               <span style={{ textTransform: "capitalize" }}>{source}</span>
               <Tag type={SOURCE_TAG_TYPE[source] ?? "cool-gray"} size="sm">
                 {files.length}
               </Tag>
+              {checkedHere > 0 && (
+                <span style={{ fontWeight: 400, opacity: 0.7, fontSize: "0.75rem" }}>
+                  ({checkedHere} selected)
+                </span>
+              )}
             </div>
             <ul className="files-list__items" style={{ marginTop: 0 }}>
               {files.map((f) => {
@@ -863,6 +936,7 @@ function FileList({
   selectedId,
   checkedIds,
   onToggleChecked,
+  onSetAllChecked,
   onSelect,
   onRequestDelete,
 }: {
@@ -871,6 +945,7 @@ function FileList({
   selectedId: string | null;
   checkedIds: Set<string>;
   onToggleChecked: (entry: FileEntry) => void;
+  onSetAllChecked: (checked: boolean) => void;
   onSelect: (entry: FileEntry) => void;
   onRequestDelete: (entry: FileEntry) => void;
 }) {
@@ -902,14 +977,45 @@ function FileList({
     );
   }
 
+  // Select-all state derived from current items + global checkedIds. The
+  // checkbox is indeterminate when some-but-not-all visible rows are checked.
+  const checkedHere = items.filter((e) => checkedIds.has(e.id)).length;
+  const allChecked = items.length > 0 && checkedHere === items.length;
+  const someChecked = checkedHere > 0 && checkedHere < items.length;
+
   return (
     <div className="files-list__header-wrap">
       <header className="files-list__header">
+        <span
+          onClick={(e) => e.stopPropagation()}
+          style={{ display: "inline-flex", marginRight: "0.25rem" }}
+          title={
+            allChecked
+              ? "Deselect all"
+              : someChecked
+                ? `${checkedHere}/${items.length} selected — click to select all`
+                : "Select all in this folder"
+          }
+        >
+          <Checkbox
+            id={`chk-all-${source}`}
+            labelText=""
+            hideLabel
+            checked={allChecked}
+            indeterminate={someChecked}
+            onChange={(_: any, { checked }: any) => onSetAllChecked(!!checked)}
+          />
+        </span>
         <Tag type={SOURCE_TAG_TYPE[source] ?? "cool-gray"}>
           {SOURCE_LABEL[source]}
         </Tag>
         <span className="files-list__count">
           {items.length} file{items.length === 1 ? "" : "s"}
+          {checkedHere > 0 && (
+            <span style={{ marginLeft: "0.5rem", opacity: 0.75 }}>
+              ({checkedHere} selected)
+            </span>
+          )}
         </span>
         <div
           className="files-list__view-toggle"
