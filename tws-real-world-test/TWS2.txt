@@ -1,0 +1,90 @@
+SCHEDULE CORE_PROD_SRV#FIN_EOD_SETTLEMENT
+DESCRIPTION "Critical financial reconciliation and clearing pipeline with environment variables and mutual exclusion"
+VARTABLE BANKING_PROD_VARS
+ON RUNCYCLE BUSINESS_DAYS "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR"
+NOTON RUNCYCLE BANK_HOLIDAYS "CALENDAR=FINANCIAL_CAL"
+CARRYFORWARD
+MATCHING PREVIOUS
+PRIORITY 80
+
+# MUTUAL EXCLUSION: Prevent this schedule from running if the ad-hoc audit stream is active
+NOTFOLLOWS AUDIT_SRV#AD_HOC_AUDIT_STREAM.@
+
+:
+  # ------------------------------------------------------------------
+  # STEP 1: INITIAL COMPLIANCE GATES & ENVIRONMENT SETUP
+  # ------------------------------------------------------------------
+  
+  # Dynamic environment check using a TWS Variable Table ($^ENV_ID^ resolves to PROD, STG, etc.)
+  CORE_PROD_SRV#INIT_ENV_VARS
+    STREAMLOGON finadmin
+    DESCRIPTION "Verify variable table resolution for environment: ^ENV_ID^"
+    SCRIPTNAME "/opt/tws/scripts/init_env.sh -e ^ENV_ID^ -d ^O_DATE^"
+
+  # JOIN DEPENDENCY: Wait for Swift gateway AND local ATM networks to close out
+  CORE_PROD_SRV#GATEWAY_CHECK
+    FOLLOWS INIT_ENV_VARS
+    FOLLOWS SWIFT_GATEWAY_SRV#SWIFT_CLOSING_STREAM.LOG_OFF_CONFIRM
+    FOLLOWS ATM_NETWORK_SRV#ATM_SETTLE_STREAM.BLOCK_NEW_TXNS
+
+  # ------------------------------------------------------------------
+  # STEP 2: RECONCILIATION LOOP WITH SELF-HEALING RETRY
+  # ------------------------------------------------------------------
+
+  # Run verification every 10 minutes up to 3 times if it fails to clear ledger balances
+  CORE_PROD_SRV#LEDGER_RECONCILE
+    FOLLOWS GATEWAY_CHECK
+    STREAMLOGON finuser
+    DESCRIPTION "Match debit/credit balances across ledger segments"
+    # TWS loops this job specifically if execution parameters require polling
+    AT 2100 EVERY 0010 UNTIL 2130 ONUNTIL CANC
+    RECOVERY STOP
+
+  # Advanced Conditional Rule: Evaluate complex evaluation logic
+  # If ledger returns RC between 1 and 5, route to automated patching. If RC=99, trigger hard abort.
+  CORE_PROD_SRV#EVALUATE_BALANCES
+    FOLLOWS LEDGER_RECONCILE
+    STREAMLOGON finuser
+    ON DISCREPANCY_PATCH VAL RC>=1 AND RC<=5
+    ON HARD_FAIL_ABORT RC=99
+    RECOVERY STOP
+
+  # ------------------------------------------------------------------
+  # STEP 3: RECOVERY AND MANUAL ESCALATION PATHS
+  # ------------------------------------------------------------------
+
+  CORE_PROD_SRV#DISCREPANCY_PATCH
+    STREAMLOGON finadmin
+    DESCRIPTION "Inject automated balancing offsets for minor rounding decimals"
+    # On success, this job forces TWS to consider the parent sequence repaired
+
+  CORE_PROD_SRV#HARD_FAIL_ABORT
+    STREAMLOGON finadmin
+    DESCRIPTION "Triggers PagerDuty/Syslog infrastructure alerts for severe accounting mismatches"
+    PROMPT "CRITICAL RECONCILIATION FAILURE: Manual ledger override required. Acknowledge block? (YES/NO)"
+
+  # ------------------------------------------------------------------
+  # STEP 4: CLEARING, LEDGER LOCK, AND BACKUP
+  # ------------------------------------------------------------------
+
+  # This job will run if EVALUATE_BALANCES completes cleanly OR after DISCREPANCY_PATCH fixes the ledger
+  CORE_PROD_SRV#EXECUTE_SETTLEMENT
+    FOLLOWS EVALUATE_BALANCES SUCCESS, DISCREPANCY_PATCH
+    STREAMLOGON finuser
+    DESCRIPTION "Finalize clearing and push to central bank settlement engine"
+    NEEDS 1 SETTLEMENT_GATEWAY_TOKEN
+
+  # Close fiscal day ledger
+  CORE_PROD_SRV#LOCK_LEDGER_DAY
+    FOLLOWS EXECUTE_SETTLEMENT
+    STREAMLOGON db_settle
+    DESCRIPTION "Flip DB tables to read-only for processing date ^O_DATE^"
+
+  # Safe Cold-Backup of Database
+  CORE_PROD_SRV#SECURE_SNAPSHOT
+    FOLLOWS LOCK_LEDGER_DAY
+    STREAMLOGON dba_user
+    DESCRIPTION "Encrypted transaction vault snapshot"
+    DEADLINE 2345 ONUNTIL SUPPR
+
+END

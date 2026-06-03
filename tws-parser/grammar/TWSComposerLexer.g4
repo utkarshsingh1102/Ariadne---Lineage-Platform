@@ -21,6 +21,10 @@ ONUNTIL      : [Oo][Nn][Uu][Nn][Tt][Ii][Ll];
 ON           : [Oo][Nn];
 UNTIL        : [Uu][Nn][Tt][Ii][Ll];
 
+// NOTFOLLOWS / NOTON — must precede FOLLOWS/ON so the longer token wins.
+NOTFOLLOWS   : [Nn][Oo][Tt][Ff][Oo][Ll][Ll][Oo][Ww][Ss];
+NOTON        : [Nn][Oo][Tt][Oo][Nn];
+
 CARRYFORWARD : [Cc][Aa][Rr][Rr][Yy][Ff][Oo][Rr][Ww][Aa][Rr][Dd];
 FOLLOWS      : [Ff][Oo][Ll][Ll][Oo][Ww][Ss];
 PRIORITY     : [Pp][Rr][Ii][Oo][Rr][Ii][Tt][Yy];
@@ -56,7 +60,17 @@ DEADLINE     : [Dd][Ee][Aa][Dd][Ll][Ii][Nn][Ee];
 LIMIT        : [Ll][Ii][Mm][Ii][Tt];
 EXCEPT       : [Ee][Xx][Cc][Ee][Pp][Tt];
 CANC         : [Cc][Aa][Nn][Cc];
+SUPPR        : [Ss][Uu][Pp][Pp][Rr];
 AFTER        : [Aa][Ff][Tt][Ee][Rr];
+
+// v0.3 — schedule-level modifiers + job-level conditional routing keywords.
+MATCHING     : [Mm][Aa][Tt][Cc][Hh][Ii][Nn][Gg];
+PREVIOUS     : [Pp][Rr][Ee][Vv][Ii][Oo][Uu][Ss];
+VARTABLE     : [Vv][Aa][Rr][Tt][Aa][Bb][Ll][Ee];
+SUCCESS      : [Ss][Uu][Cc][Cc][Ee][Ss][Ss];
+VAL          : [Vv][Aa][Ll];
+AND          : [Aa][Nn][Dd];
+OR           : [Oo][Rr];
 
 // v0.2 — workstation properties
 // AUTOLINK / BEHINDFIREWALL must precede their longer-prefix candidates if any;
@@ -110,6 +124,14 @@ COMMA       : ',';
 LBRACE      : '{';
 RBRACE      : '}';
 EQ          : '=';
+
+// v0.3 — comparison operators used in job-level VAL conditions like
+//   ``ON DISCREPANCY_PATCH VAL RC>=1 AND RC<=5``
+// Longer (two-char) operators must precede the one-char ones for max-munch.
+GE          : '>=';
+LE          : '<=';
+GT          : '>';
+LT          : '<';
 
 // ----------------------------------------------------------------------------
 // Literals

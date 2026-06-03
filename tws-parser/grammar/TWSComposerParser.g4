@@ -114,12 +114,17 @@ scheduleHeader
 scheduleProperty
     : descriptionClause
     | onClause
+    | notOnClause            // v0.3 — NOTON RUNCYCLE <name> "rule"
     | exceptRunCycleClause
     | atClause
     | untilClause
     | deadlineClause
     | carryForwardClause
     | followsClause
+    | notFollowsClause       // v0.3 — NOTFOLLOWS <ref> (mutual exclusion)
+    | matchingClause         // v0.3 — MATCHING PREVIOUS
+    | needsClause            // v0.3 — NEEDS at schedule level (was job-only)
+    | vartableClause         // v0.3 — VARTABLE <name>
     | priorityClause
     | limitClause
     | validFromClause
@@ -137,6 +142,32 @@ onClause
       STRING?
     ;
 
+// v0.3 — NOTON RUNCYCLE is the inverse: "do not run on the rule's matches".
+// Common form in real composer files for holiday calendars:
+//   NOTON RUNCYCLE HOLIDAYS "CALENDAR=CORP_HOLIDAYS"
+notOnClause
+    : NOTON RUNCYCLE runCyclePhrase
+      ( CALENDAR parserId )?
+      STRING?
+    ;
+
+// v0.3 — MATCHING PREVIOUS (carry-forward matching criterion).
+matchingClause
+    : MATCHING PREVIOUS
+    ;
+
+// v0.3 — VARTABLE <name>. Names a variable table whose ^VAR^ tokens are
+// resolved at runtime; we just capture the reference.
+vartableClause
+    : VARTABLE parserId
+    ;
+
+// v0.3 — NOTFOLLOWS at schedule level: mutual exclusion.
+//   NOTFOLLOWS AUDIT_SRV#AD_HOC_AUDIT_STREAM.@
+notFollowsClause
+    : NOTFOLLOWS dependencyTarget
+    ;
+
 // Multi-token run-cycle name (e.g. `MONTHLY ON LAST WORKDAY`,
 // `DAILY EVERY HOUR`, `WEEKDAY EXCEPT HOLIDAYS`). Greedy — stops at the next
 // distinct keyword token (VALIDFROM/VALIDTO/AT/UNTIL/CALENDAR/STRING/…).
@@ -151,7 +182,11 @@ exceptRunCycleClause
 atClause            : AT timeLiteral ;
 // v0.2 — UNTIL gains an optional ONUNTIL CANC tail.
 untilClause         : UNTIL timeLiteral ( ONUNTIL CANC )? ;
-deadlineClause      : DEADLINE timeLiteral ;
+// v0.3 — DEADLINE may carry an ONUNTIL action: ``DEADLINE 0600 ONUNTIL SUPPR``
+// means "if the deadline passes, suppress this job"; ``CANC`` cancels it.
+deadlineClause
+    : DEADLINE timeLiteral ( ONUNTIL ( SUPPR | CANC ) )?
+    ;
 carryForwardClause  : CARRYFORWARD ;
 priorityClause      : PRIORITY INT ;
 limitClause         : LIMIT INT ;
@@ -167,11 +202,14 @@ followsClause
     ;
 
 followsItem
-    : dependencyTarget ( IF followsCondition )?
+    : dependencyTarget ( IF? followsCondition )?
     ;
 
+// v0.3 — SUCCESS and ABEND can appear bare (without the IF keyword) in real
+// composer files: ``FOLLOWS STAGING_VALIDATION SUCCESS, DB_RECOVER_WARN``.
 followsCondition
     : SUCC
+    | SUCCESS
     | ABEND
     | RC EQ INT
     ;
@@ -198,8 +236,27 @@ jobProperty
     | opensClause
     | atClause
     | everyClause
+    | untilClause            // v0.3 — job-level UNTIL for loop blocks
+    | deadlineClause         // v0.3 — job-level DEADLINE (was schedule-only)
+    | onConditionClause      // v0.3 — ON <jobname> RC=N or VAL <expr>
     | promptDepClause
     | priorityClause
+    ;
+
+// v0.3 — Conditional routing on return code (ON <jobname> RC=N) or a more
+// complex VAL expression with comparison operators (RC>=1 AND RC<=5).
+// The named target is another job in the same schedule that runs when the
+// condition matches. This becomes a DEPENDS_ON_RC edge in the IR.
+onConditionClause
+    : ON parserId ( RC EQ INT | VAL valExpression )
+    ;
+
+valExpression
+    : valComparison ( ( AND | OR ) valComparison )*
+    ;
+
+valComparison
+    : RC ( EQ | GE | LE | GT | LT ) INT
     ;
 
 scriptNameClause     : SCRIPTNAME scriptPath ;
@@ -225,7 +282,12 @@ opensTarget
 
 // v0.2 — EVERY rerun cadence + PROMPT manual gate.
 everyClause          : EVERY INT ;
-promptDepClause      : PROMPT parserId ;
+
+// v0.3 — PROMPT at job level can also be an inline text literal
+// (``PROMPT "Schema mismatch — proceed?"``), not just a named prompt ref.
+promptDepClause
+    : PROMPT ( parserId | STRING )
+    ;
 
 scriptPath
     : STRING

@@ -383,7 +383,12 @@ class TWSIRVisitor(TWSComposerParserVisitor):
             elif prop.everyClause() is not None:
                 job.every = _safe_int(prop.everyClause().INT())
             elif prop.promptDepClause() is not None:
-                job.prompts.append(prop.promptDepClause().parserId().getText())
+                # v0.3 — PROMPT may name a prompt OR carry an inline STRING.
+                pd = prop.promptDepClause()
+                if pd.parserId() is not None:
+                    job.prompts.append(pd.parserId().getText())
+                elif pd.STRING() is not None:
+                    job.prompts.append(_unquote(pd.STRING().getText()))
             elif prop.atClause() is not None:
                 # Job-level AT — not promoted to a structured field in v0.1;
                 # silently accepted so the parse stays clean.

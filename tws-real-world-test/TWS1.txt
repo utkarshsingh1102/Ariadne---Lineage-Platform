@@ -1,0 +1,89 @@
+SCHEDULE APP_PROD_SRV#RETAIL_ETL_PIPELINE
+DESCRIPTION "End-of-day retail analytics ETL pipeline with conditional recovery and resource controls"
+ON RUNCYCLE WORKDAYS "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR"
+NOTON RUNCYCLE HOLIDAYS "CALENDAR=CORP_HOLIDAYS"
+CARRYFORWARD
+MATCHING PREVIOUS
+PRIORITY 10
+NEEDS 2 DB_CONNECTIONS_POOL
+
+:
+  # ------------------------------------------------------------------
+  # STEP 1: GATES & EXTERNAL DEPENDENCIES
+  # ------------------------------------------------------------------
+  
+  # Wait for the Point-of-Sale (POS) upload job stream on the store server to finish successfully
+  APP_PROD_SRV#EXTERNAL_DEP_CHECK
+    FOLLOWS STORE_SRV#POS_UPLOAD_STREAM.@
+
+  # Wait for the physical inventory CSV manifest to land on the local storage
+  APP_PROD_SRV#CHECK_INVENTORY_FILE
+    OPENS APP_PROD_SRV#"/opt/data/ingest/inventory_manifest.csv"
+    FOLLOWS EXTERNAL_DEP_CHECK
+
+  # ------------------------------------------------------------------
+  # STEP 2: CORE INGESTION & DATA STAGING
+  # ------------------------------------------------------------------
+
+  APP_PROD_SRV#INGEST_TRANS_DATA
+    FOLLOWS CHECK_INVENTORY_FILE
+    STREAMLOGON etluser
+    DESCRIPTION "Ingest raw transaction data into staging environment"
+    RECOVERY STOP
+
+  APP_PROD_SRV#STAGING_VALIDATION
+    FOLLOWS INGEST_TRANS_DATA
+    STREAMLOGON etluser
+    DESCRIPTION "Validate schemas and checksums of staged records"
+    # Conditional branching rules based on exact return codes:
+    ON DB_RECOVER_CRIT RC=120
+    ON DB_RECOVER_WARN RC=4
+    RECOVERY STOP
+
+  # ------------------------------------------------------------------
+  # STEP 3: CONDITIONAL RECOVERY ROUTINES
+  # ------------------------------------------------------------------
+
+  APP_PROD_SRV#DB_RECOVER_WARN
+    STREAMLOGON etladmin
+    DESCRIPTION "Automated minor data patch routine for missing non-critical rows"
+    # This job only runs if STAGING_VALIDATION finishes with Return Code 4
+
+  APP_PROD_SRV#DB_RECOVER_CRIT
+    STREAMLOGON dba_user
+    DESCRIPTION "Critical schema mismatch routine. Demands manual confirmation."
+    # Prompts pause processing until an operator replies "YES" in the TWS console
+    PROMPT "CRITICAL ERROR: Schema mismatch detected. Do you want to force data alignment? (YES/NO)"
+
+  # ------------------------------------------------------------------
+  # STEP 4: TRANSFORMATION & AGGREGATION (CONCURRENT RUNNING)
+  # ------------------------------------------------------------------
+
+  # The following two jobs run concurrently after validation passes (or minor warning recovery finishes)
+  APP_PROD_SRV#AGGREGATE_SALES
+    FOLLOWS STAGING_VALIDATION SUCCESS, DB_RECOVER_WARN
+    STREAMLOGON etluser
+    DESCRIPTION "Build daily sales cubes"
+
+  APP_PROD_SRV#AGGREGATE_INVENTORY
+    FOLLOWS STAGING_VALIDATION SUCCESS, DB_RECOVER_WARN
+    STREAMLOGON etluser
+    DESCRIPTION "Reconcile warehouse stock logs"
+
+  # ------------------------------------------------------------------
+  # STEP 5: LOAD, REFRESH, AND CLEANUP
+  # ------------------------------------------------------------------
+
+  APP_PROD_SRV#LOAD_DATA_WAREHOUSE
+    FOLLOWS AGGREGATE_SALES, AGGREGATE_INVENTORY
+    STREAMLOGON etluser
+    DESCRIPTION "Publish processed data to the production DW cluster"
+    DEADLINE 0600 ONUNTIL SUPPR
+    # Frees up database bandwidth for day-shift transactions if it passes 6:00 AM
+
+  APP_PROD_SRV#PURGE_STAGE_FILES
+    FOLLOWS LOAD_DATA_WAREHOUSE
+    STREAMLOGON etluser
+    DESCRIPTION "Purge temporary CSV files from staging area"
+    
+END
