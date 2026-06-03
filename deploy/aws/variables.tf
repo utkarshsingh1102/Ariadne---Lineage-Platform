@@ -32,12 +32,23 @@ variable "key_pair_name" {
 }
 
 variable "operator_ip_cidr" {
-  description = "Your public IP in CIDR notation, e.g., '203.0.113.42/32'. SSH and the demo ports are locked to this. Find your IP at https://checkip.amazonaws.com/ then append '/32'."
+  description = "Your public IP in CIDR notation, e.g., '203.0.113.42/32'. SSH is ALWAYS locked to this — never set it to 0.0.0.0/0. Find your IP at https://checkip.amazonaws.com/ then append '/32'."
   type        = string
 
   validation {
     condition     = can(regex("^[0-9.]+/[0-9]+$", var.operator_ip_cidr))
     error_message = "operator_ip_cidr must look like '203.0.113.42/32', not '203.0.113.42' or 'me'."
+  }
+}
+
+variable "demo_access_cidr" {
+  description = "Who can reach the frontend (port 3000) and gateway (port 8000). Defaults to operator_ip_cidr (private demo). Set to '0.0.0.0/0' to expose the demo to the public internet — be aware the gateway has no authentication, so anyone with the URL can run read-only Cypher and trigger parses."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.demo_access_cidr == null || can(regex("^[0-9.]+/[0-9]+$", var.demo_access_cidr))
+    error_message = "demo_access_cidr must look like '203.0.113.42/32' or '0.0.0.0/0', or be omitted."
   }
 }
 

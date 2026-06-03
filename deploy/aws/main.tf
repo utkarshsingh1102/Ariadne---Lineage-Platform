@@ -43,9 +43,16 @@ data "aws_ami" "al2023" {
 }
 
 # ---------------------------------------------------------------------------
-# Security group — locked to the operator's IP for SSH and the demo ports.
-# Open ports 80/443 to the world only when you wire up Nginx + TLS later.
+# Security group
+# - SSH (22) is ALWAYS locked to the operator's IP.
+# - Frontend (3000) + gateway (8000) open to demo_access_cidr, which defaults
+#   to the operator's IP. Set demo_access_cidr = "0.0.0.0/0" in tfvars to
+#   publish the demo on the public internet.
 # ---------------------------------------------------------------------------
+locals {
+  demo_cidr = coalesce(var.demo_access_cidr, var.operator_ip_cidr)
+}
+
 resource "aws_security_group" "this" {
   name        = "${var.project_name}-sg"
   description = "Ariadne lineage platform - single-EC2 demo"
@@ -59,19 +66,19 @@ resource "aws_security_group" "this" {
   }
 
   ingress {
-    description = "Frontend (Next.js) from operator IP"
+    description = "Frontend (Next.js)"
     from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
-    cidr_blocks = [var.operator_ip_cidr]
+    cidr_blocks = [local.demo_cidr]
   }
 
   ingress {
-    description = "Gateway (FastAPI) from operator IP"
+    description = "Gateway (FastAPI)"
     from_port   = 8000
     to_port     = 8000
     protocol    = "tcp"
-    cidr_blocks = [var.operator_ip_cidr]
+    cidr_blocks = [local.demo_cidr]
   }
 
   egress {
