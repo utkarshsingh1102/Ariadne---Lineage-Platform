@@ -65,6 +65,13 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      # Apply the TWS mirror schema on FIRST boot of an empty data volume.
+      # Idempotent (IF NOT EXISTS everywhere); harmless if re-run by mistake.
+      # Existing deploys with a populated postgres_data won't auto-apply this —
+      # run it manually once via:
+      #   docker exec -i lineage-postgres psql -U lineage -d lineage \
+      #     < ../lineage-contracts/schema/postgres/tws-schema.sql
+      - ../lineage-contracts/schema/postgres/tws-schema.sql:/docker-entrypoint-initdb.d/02-tws-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U lineage -d lineage"]
       interval: 5s
