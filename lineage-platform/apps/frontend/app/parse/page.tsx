@@ -109,8 +109,8 @@ export default function ParsePage() {
   const [autoUploaderKey, setAutoUploaderKey] = useState(0);
 
   // ----- project-grouping state (only used in mixed-batch mode) -----------
-  type Grouping = "source" | "project";
-  const [grouping, setGrouping] = useState<Grouping>("source");
+  // Every batch upload requires a project name; files are grouped under
+  // that project + sub-grouped by parser type inside it.
   const [projectName, setProjectName] = useState("");
 
   const resetUploader = () => {
@@ -246,12 +246,15 @@ export default function ParsePage() {
       }
     } else {
       // Mixed batch — every file routed to its parser by extension.
+      // A project name is REQUIRED for every batch: it groups the
+      // uploaded files under one project so the Files tab can show
+      // them together and tracing "whole project" lineage works.
       if (autoFiles.length === 0) {
         setError("Add at least one file.");
         return;
       }
-      if (grouping === "project" && !projectName.trim()) {
-        setError("Project name is required when grouping into a project.");
+      if (!projectName.trim()) {
+        setError("Project name is required for batch uploads.");
         return;
       }
       setBusy(true);
@@ -260,11 +263,11 @@ export default function ParsePage() {
         const r = await api.parseUploadAuto(
           autoFiles,
           overwrite,
-          grouping === "project" ? projectName : undefined,
+          projectName.trim(),
         );
         setAutoResult(r);
         resetAutoUploader();
-        if (grouping === "project") setProjectName("");
+        setProjectName("");
       } catch (e: any) {
         setError(e?.message ?? String(e));
       } finally {
@@ -279,7 +282,7 @@ export default function ParsePage() {
       ? !file
       : mode === "multi"
       ? multiFiles.length < 2
-      : autoFiles.length === 0);
+      : autoFiles.length === 0 || !projectName.trim());
   const submitLabel = busy
     ? mode === "single"
       ? "Parsing…"
@@ -409,48 +412,21 @@ export default function ParsePage() {
               </Tile>
             )}
 
-            {autoFiles.length >= 1 && (
-              <Tile>
-                <RadioButtonGroup
-                  legendText="Where should these files go?"
-                  name="grouping"
-                  orientation="vertical"
-                  valueSelected={grouping}
-                  onChange={(v: any) => setGrouping(v as Grouping)}
-                >
-                  <RadioButton
-                    labelText={
-                      autoFiles.length === 1
-                        ? "Route to its source folder (default)"
-                        : "Route each file to its source folder (default)"
-                    }
-                    value="source"
-                    id="grp-source"
-                  />
-                  <RadioButton
-                    labelText={
-                      autoFiles.length === 1
-                        ? "Group into a new project (file is added to that project)"
-                        : "Group all files into a new project (per-parser subfolders auto-created)"
-                    }
-                    value="project"
-                    id="grp-project"
-                  />
-                </RadioButtonGroup>
-                {grouping === "project" && (
-                  <div style={{ marginTop: "0.75rem" }}>
-                    <TextInput
-                      id="project-name"
-                      labelText="Project name"
-                      placeholder="e.g. acme_q3_data_deck"
-                      value={projectName}
-                      onChange={(e: any) => setProjectName(e.target.value)}
-                      helperText="Must be unique across all projects. Files will be sub-grouped by parser type inside this project."
-                    />
-                  </div>
-                )}
-              </Tile>
-            )}
+            <Tile>
+              <p style={{ marginBottom: "0.75rem", fontWeight: 600 }}>
+                Project name <span style={{ color: "#da1e28" }}>*</span>
+              </p>
+              <TextInput
+                id="project-name"
+                labelText=""
+                placeholder="e.g. acme_q3_data_deck"
+                value={projectName}
+                onChange={(e: any) => setProjectName(e.target.value)}
+                invalid={!!autoFiles.length && !projectName.trim()}
+                invalidText="Required — every batch upload must belong to a project."
+                helperText="Required. All files in this batch are grouped under this project and appear together in the Files tab. Files are sub-grouped by parser type inside the project."
+              />
+            </Tile>
 
             <Checkbox
               id="overwrite-auto"

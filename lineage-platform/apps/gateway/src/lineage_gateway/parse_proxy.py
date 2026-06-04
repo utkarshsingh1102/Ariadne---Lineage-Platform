@@ -305,12 +305,13 @@ def _cleanup(paths: list[Path]) -> None:
 async def parse_upload_auto(
     files: list[UploadFile] = File(..., description="1-30 mixed-source files"),
     overwrite: bool = Form(False),
-    project_name: str | None = Form(
-        None,
+    project_name: str = Form(
+        ...,
         description=(
-            "Optional. If set, every successfully-parsed file is grouped "
-            "into this project (created if it doesn't already exist). The "
-            "name must be unique across all projects."
+            "Required. Every successfully-parsed file in this batch is "
+            "grouped into this project (created if it doesn't already "
+            "exist; existing projects are appended to). The name must be "
+            "unique across all projects when created."
         ),
     ),
 ) -> dict[str, Any]:
@@ -333,6 +334,15 @@ async def parse_upload_auto(
     if len(files) > 30:
         raise HTTPException(
             status_code=400, detail="upload/auto capped at 30 files per batch"
+        )
+    if not project_name or not project_name.strip():
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "project_name is required for batch uploads — every batch "
+                "must be grouped under a project so the Files tab can list "
+                "the files together."
+            ),
         )
 
     batch_uuid = uuid.uuid4().hex[:8]
