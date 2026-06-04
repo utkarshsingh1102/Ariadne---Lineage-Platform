@@ -308,10 +308,11 @@ def compute_commonality(
             label_bucket = report.file_specific.setdefault(only, {}).setdefault(label, [])
             label_bucket.append(node_id)
 
-    # Cross-file FOLLOWS: an edge is cross-file iff there's NO single file
-    # that contains BOTH the from-job and the to-job. A shared predecessor
-    # (in files [a, b]) that points to a successor in file [b] is NOT
-    # cross-file because file b contains both.
+    # Cross-file FOLLOWS — job-to-job edges.
+    # An edge is cross-file iff there's NO single file that contains BOTH
+    # the from-job and the to-job. A shared predecessor (in files [a, b])
+    # that points to a successor in file [b] is NOT cross-file because
+    # file b contains both.
     for edge in deps.follows_edges:
         from_files = set(provenance.get(edge.from_job_id, []))
         to_files = set(provenance.get(edge.to_job_id, []))
@@ -325,6 +326,38 @@ def compute_commonality(
             to_file=sorted(to_files)[0],
             to_job_qualified=edge.to_qualified,
             condition=edge.condition,
+        ))
+
+    # Cross-file FOLLOWS — schedule-to-schedule edges.
+    # A schedule in file A can declare ``FOLLOWS WS#OTHER_SCHED`` where
+    # the target schedule lives in file B. ``deps.schedule_dependencies``
+    # carries these by NAME, so resolve back to ids via the merged unit.
+    sched_id_by_name: dict[str, str] = {}
+    for sc in merged.schedules:
+        sched_id_by_name[sc.name] = sc.id
+    for js in merged.job_streams:
+        sched_id_by_name.setdefault(js.name, js.id)
+
+    for sd in deps.schedule_dependencies:
+        from_id = sched_id_by_name.get(sd.schedule)
+        to_id = sched_id_by_name.get(sd.depends_on_schedule)
+        if not from_id or not to_id:
+            continue
+        from_files = set(provenance.get(from_id, []))
+        to_files = set(provenance.get(to_id, []))
+        if not from_files or not to_files:
+            continue
+        if from_files & to_files:
+            continue
+        report.cross_file_follows.append(CrossFileFollows(
+            from_file=sorted(from_files)[0],
+            from_job_qualified=f"{sd.target_workstation}#{sd.schedule}".lstrip("#"),
+            to_file=sorted(to_files)[0],
+            to_job_qualified=(
+                f"{sd.target_workstation}#{sd.depends_on_schedule}"
+                + (".@" if sd.wildcard else "")
+            ).lstrip("#"),
+            condition=None,
         ))
 
     return report
