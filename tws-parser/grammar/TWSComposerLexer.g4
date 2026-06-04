@@ -113,6 +113,15 @@ LINE_COMMENT
     : { self.column == 0 or self._input.LA(-1) in (32, 9) }? '#' ~[\r\n]* -> channel(HIDDEN)
     ;
 
+// v0.3 — TWS native asterisk-comment lines.
+//   *--------------------------
+//   * This is a comment.
+// Only fires at column 0 followed by space, hyphen, equals, asterisk,
+// or tab so it can't eat a stray '*' inside a multi-token expression.
+ASTERISK_COMMENT
+    : { self.column == 0 }? '*' [ \-=*\t] ~[\r\n]* -> channel(HIDDEN)
+    ;
+
 // ----------------------------------------------------------------------------
 // Punctuation
 // ----------------------------------------------------------------------------

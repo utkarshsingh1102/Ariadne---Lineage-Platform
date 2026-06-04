@@ -73,9 +73,18 @@ def _peek(path: Path) -> str:
         return "xml"
     # Composer text begins with comments, blank lines, or a top-level
     # keyword. Examine the first non-comment, non-blank line.
+    #   ``#``  Python/shell style (our own fixtures)
+    #   ``/*`` C block style
+    #   ``//`` C++ line style
+    #   ``*``  TWS native asterisk-comment (real-world IBM TWS dumps)
+    #          — only when followed by space or '-' / '=' / '*', so a
+    #          bare ``*'' on a line counts but a line starting with
+    #          ``*FOO`` (no separator) doesn't get mis-classified.
     for line in text.splitlines():
         s = line.strip()
         if not s or s.startswith("#") or s.startswith("/*") or s.startswith("//"):
+            continue
+        if s == "*" or s.startswith(("* ", "*-", "*=", "**", "*\t")):
             continue
         first_token = s.split(None, 1)[0].upper() if s else ""
         if first_token in _COMPOSER_TOP_LEVEL_KEYWORDS:
