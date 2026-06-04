@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<workbook source-build='2023.1.0' version='18.1' xmlns:user='http://www.tableausoftware.com/xml/user'>
+  <datasources>
+    <!-- Parameters -->
+    <datasource hasconnection='false' inline='true' name='Parameters'>
+      <column caption='RWE Threshold' datatype='real' name='[Parameter 1]' param-domain-type='range' role='measure' type='quantitative' value='1000000'>
+        <calculation class='tableau' formula='1000000' />
+      </column>
+    </datasource>
+
+    <!-- Risk exposure mart written by risk_aggregation.py -->
+    <datasource caption='Risk Exposure' inline='true' name='federated.risk01'>
+      <connection class='federated'>
+        <named-connections>
+          <named-connection caption='WAREHOUSE_PROD' name='snowflake.wh.1'>
+            <connection class='snowflake' dbname='PROD' schema='MART' server='acme.snowflakecomputing.com' username='bi_reader' password='tab_SCRUB_ME' warehouse='WH_BI' />
+          </named-connection>
+        </named-connections>
+        <_.fcp.ObjectModelEncapsulateLegacy.true...relation connection='snowflake.wh.1' name='RISK_EXPOSURE' table='[MART].[RISK_EXPOSURE]' type='table' />
+      </connection>
+      <column datatype='integer' name='[customer_id]' role='dimension' type='ordinal' />
+      <column datatype='integer' name='[branch_id]' role='dimension' type='ordinal' />
+      <column datatype='string' name='[region]' role='dimension' type='nominal' />
+      <column datatype='real' name='[exposure_amount]' role='measure' type='quantitative' />
+      <column datatype='real' name='[max_fraud_score]' role='measure' type='quantitative' />
+      <column datatype='real' name='[risk_weighted_exposure]' role='measure' type='quantitative' />
+
+      <!-- Calculated fields -->
+      <column caption='RWE Status' datatype='string' name='[Calculation_RWEStatus]' role='dimension' type='nominal'>
+        <calculation class='tableau' formula='IF SUM([risk_weighted_exposure]) &gt; [Parameters].[Parameter 1] THEN &quot;Breach&quot; ELSE &quot;Within Limit&quot; END' />
+      </column>
+      <column caption='Avg Fraud Per Region' datatype='real' name='[Calculation_LOD]' role='measure' type='quantitative'>
+        <calculation class='tableau' formula='{ FIXED [region] : AVG([max_fraud_score]) }' />
+      </column>
+    </datasource>
+  </datasources>
+
+  <worksheets>
+    <worksheet name='RWE by Region'>
+      <table>
+        <view>
+          <datasources>
+            <datasource caption='Risk Exposure' name='federated.risk01' />
+          </datasources>
+          <datasource-dependencies datasource='federated.risk01'>
+            <column datatype='string' name='[region]' role='dimension' type='nominal' />
+            <column datatype='real' name='[risk_weighted_exposure]' role='measure' type='quantitative' />
+            <column datatype='string' name='[Calculation_RWEStatus]' role='dimension' type='nominal' />
+          </datasource-dependencies>
+        </view>
+        <rows>[federated.risk01].[region]</rows>
+        <cols>[federated.risk01].[risk_weighted_exposure]</cols>
+      </table>
+    </worksheet>
+  </worksheets>
+
+  <dashboards>
+    <dashboard name='Executive Risk Dashboard'>
+      <zones>
+        <zone h='100000' id='3' w='100000' x='0' y='0'>
+          <zone h='100000' id='4' name='RWE by Region' w='100000' x='0' y='0' />
+        </zone>
+      </zones>
+    </dashboard>
+  </dashboards>
+</workbook>

@@ -92,8 +92,15 @@ def parse(req: ParseRequest) -> dict[str, Any]:
         "includes": len(app_ir.includes),
         "fields": sum(len(l.fields) for l in app_ir.loads),
     }
+    # Return the SAME :QlikScript node id the writer actually creates so
+    # callers (gateway → projects) can MATCH the node by id later. Earlier
+    # versions returned ``Path(path).stem`` which broke the link from
+    # project_files.neo4j_id to the real Neo4j node id (a SHA-256 hash).
+    from .graph.writer import _id_short
+    node_id = _id_short(f"qlik_script::{path}")
     return {
-        "id": Path(path).stem,
+        "id": node_id,
+        "parsed_node_ids": [node_id],
         "stats": stats,
         "duration_ms": elapsed,
         "warnings": [

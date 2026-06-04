@@ -1,0 +1,82 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<workbook source-build='2023.1.0' version='18.1' xmlns:user='http://www.tableausoftware.com/xml/user'>
+  <datasources>
+    <!-- Primary: fraud scores mart written by fraud_scoring.py -->
+    <datasource caption='Fraud Scores' inline='true' name='federated.fraud01'>
+      <connection class='federated'>
+        <named-connections>
+          <named-connection caption='WAREHOUSE_PROD' name='snowflake.wh.1'>
+            <connection class='snowflake' dbname='PROD' schema='MART' server='acme.snowflakecomputing.com' username='bi_reader' password='tab_SCRUB_ME' warehouse='WH_BI' />
+          </named-connection>
+        </named-connections>
+        <_.fcp.ObjectModelEncapsulateLegacy.true...relation connection='snowflake.wh.1' name='FRAUD_SCORES' table='[MART].[FRAUD_SCORES]' type='table' />
+      </connection>
+      <column datatype='integer' name='[txn_id]' role='dimension' type='ordinal' />
+      <column datatype='integer' name='[customer_id]' role='dimension' type='ordinal' />
+      <column datatype='integer' name='[branch_id]' role='dimension' type='ordinal' />
+      <column datatype='string' name='[region]' role='dimension' type='nominal' />
+      <column datatype='real' name='[amount_abs]' role='measure' type='quantitative' />
+      <column datatype='real' name='[fraud_score]' role='measure' type='quantitative' />
+      <column datatype='boolean' name='[fraud_flag]' role='dimension' type='nominal' />
+
+      <!-- Chained calcs -->
+      <column caption='Flagged Amount' datatype='real' name='[Calculation_FlaggedAmt]' role='measure' type='quantitative'>
+        <calculation class='tableau' formula='IF [fraud_flag] THEN [amount_abs] ELSE 0 END' />
+      </column>
+      <column caption='High Risk Flag' datatype='string' name='[Calculation_HighRisk]' role='dimension' type='nominal'>
+        <calculation class='tableau' formula='IF [fraud_score] &gt;= 0.8 THEN &quot;Critical&quot; ELSEIF [fraud_score] &gt;= 0.5 THEN &quot;Elevated&quot; ELSE &quot;Normal&quot; END' />
+      </column>
+    </datasource>
+
+    <!-- Secondary: customer 360 mart (used for data blending on customer_id) -->
+    <datasource caption='Customer 360' inline='true' name='federated.cust360'>
+      <connection class='federated'>
+        <named-connections>
+          <named-connection caption='WAREHOUSE_PROD' name='snowflake.wh.2'>
+            <connection class='snowflake' dbname='PROD' schema='MART' server='acme.snowflakecomputing.com' username='bi_reader' warehouse='WH_BI' />
+          </named-connection>
+        </named-connections>
+        <_.fcp.ObjectModelEncapsulateLegacy.true...relation connection='snowflake.wh.2' name='CUSTOMER_360' table='[MART].[CUSTOMER_360]' type='table' />
+      </connection>
+      <column datatype='integer' name='[customer_id]' role='dimension' type='ordinal' />
+      <column datatype='string' name='[customer_name]' role='dimension' type='nominal' />
+      <column datatype='string' name='[segment]' role='dimension' type='nominal' />
+      <column datatype='real' name='[risk_weighted_exposure]' role='measure' type='quantitative' />
+    </datasource>
+  </datasources>
+
+  <worksheets>
+    <worksheet name='Fraud by Region'>
+      <table>
+        <view>
+          <datasources>
+            <datasource caption='Fraud Scores' name='federated.fraud01' />
+            <datasource caption='Customer 360' name='federated.cust360' />
+          </datasources>
+          <datasource-dependencies datasource='federated.fraud01'>
+            <column datatype='string' name='[region]' role='dimension' type='nominal' />
+            <column datatype='real' name='[Calculation_FlaggedAmt]' role='measure' type='quantitative' />
+            <column datatype='string' name='[Calculation_HighRisk]' role='dimension' type='nominal' />
+          </datasource-dependencies>
+          <!-- blend on customer_id with the secondary source -->
+          <datasource-dependencies datasource='federated.cust360'>
+            <column datatype='integer' name='[customer_id]' role='dimension' type='ordinal' />
+            <column datatype='string' name='[segment]' role='dimension' type='nominal' />
+          </datasource-dependencies>
+        </view>
+        <rows>[federated.fraud01].[region]</rows>
+        <cols>[federated.fraud01].[Calculation_FlaggedAmt]</cols>
+      </table>
+    </worksheet>
+  </worksheets>
+
+  <dashboards>
+    <dashboard name='Fraud Analytics Dashboard'>
+      <zones>
+        <zone h='100000' id='3' w='100000' x='0' y='0'>
+          <zone h='100000' id='4' name='Fraud by Region' w='100000' x='0' y='0' />
+        </zone>
+      </zones>
+    </dashboard>
+  </dashboards>
+</workbook>

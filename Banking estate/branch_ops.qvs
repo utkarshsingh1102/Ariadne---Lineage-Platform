@@ -1,0 +1,61 @@
+///$tab Main
+// ============================================================
+//  branch_ops.qvs — Branch operations load
+//  Reloaded by TWS job RELOAD_BRANCH_QV (FOLLOWS RELOAD_FRAUD_QV).
+//  Reads daily balances + branch dimension from the warehouse.
+// ============================================================
+
+SET ThousandSep=',';
+SET DecimalSep='.';
+SET DateFormat='YYYY-MM-DD';
+SET vEnv='PROD';
+
+ODBC CONNECT TO 'WAREHOUSE_$(vEnv)' (UserId is 'bi_reader', Password is 'qv_p@ss_SCRUB_ME');
+
+// Branch dimension (written by build_dimensions.py)
+Branch:
+LOAD
+    branch_id,
+    branch_name,
+    region
+;
+SQL SELECT branch_id, branch_name, region
+    FROM PROD.DIM.BRANCH;
+
+// Daily balances (written by risk_aggregation.py)
+BranchDaily:
+LOAD
+    txn_date,
+    branch_id,
+    daily_net_amount,
+    daily_txn_count,
+    active_customers
+;
+SQL SELECT txn_date, branch_id, daily_net_amount, daily_txn_count, active_customers
+    FROM PROD.MART.DAILY_BALANCES;
+
+// Join branch names onto daily metrics
+LEFT JOIN (BranchDaily)
+LOAD branch_id, branch_name, region RESIDENT Branch;
+
+// Concatenate prior-year archive
+CONCATENATE (BranchDaily)
+LOAD
+    txn_date,
+    branch_id,
+    daily_net_amount,
+    daily_txn_count,
+    active_customers
+FROM [lib://Archive/branch_daily_2024.qvd] (qvd);
+
+// Monthly rollup
+BranchMonthly:
+LOAD
+    branch_id,
+    Date(MonthStart(txn_date), 'YYYY-MM') AS YearMonth,
+    SUM(daily_net_amount)  AS MonthlyNet,
+    SUM(daily_txn_count)   AS MonthlyTxns
+RESIDENT BranchDaily
+GROUP BY branch_id, Date(MonthStart(txn_date), 'YYYY-MM');
+
+EXIT Script;

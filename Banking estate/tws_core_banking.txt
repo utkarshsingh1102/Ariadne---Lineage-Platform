@@ -1,0 +1,44 @@
+*------------------------------------------------------------
+* TWS Composer Dump — Core Banking Daily ETL (MASTER)
+* This schedule is the spine of the estate. Each job CALLS_SCRIPT
+* a real Spark/SQL file in this repo, so TWS merges onto those
+* script nodes and the "when it runs" + "what it does" threads join.
+*------------------------------------------------------------
+
+SCHEDULE WS_ETL#MASTER#DAILY_CORE_BANKING_LOAD
+  ON RUNCYCLE EVERY_DAY VALIDFROM 01/01/2025
+  AT 0200 UNTIL 0600
+  PRIORITY 60
+:
+
+  INGEST_RAW
+    SCRIPTNAME "/apps/spark/submit.sh ingest_raw.py --env prod"
+    RECOVERY STOP
+    OPENS "/data/landing/core_extract_ready.flag"
+
+  BUILD_DIMENSIONS
+    SCRIPTNAME "/apps/spark/submit.sh build_dimensions.py --env prod"
+    FOLLOWS INGEST_RAW
+    NEEDS 1 SPARK_SLOTS
+
+  TRANSFORM_TXNS
+    SCRIPTNAME "/apps/spark/submit.sh transform_transactions.py --env prod"
+    FOLLOWS BUILD_DIMENSIONS
+    NEEDS 2 SPARK_SLOTS
+
+  FRAUD_SCORING
+    SCRIPTNAME "/apps/spark/submit.sh fraud_scoring.py --env prod"
+    FOLLOWS TRANSFORM_TXNS
+    NEEDS 2 SPARK_SLOTS
+
+  RISK_AGG
+    SCRIPTNAME "/apps/spark/submit.sh risk_aggregation.py --env prod"
+    FOLLOWS FRAUD_SCORING
+    NEEDS 1 SPARK_SLOTS
+
+  CUSTOMER_360
+    SCRIPTNAME "/apps/spark/submit.sh customer_360.sql --env prod"
+    FOLLOWS RISK_AGG
+    NEEDS 1 TERADATA_SESSIONS
+
+END

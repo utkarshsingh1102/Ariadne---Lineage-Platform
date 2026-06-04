@@ -1,0 +1,66 @@
+///$tab Main
+// ============================================================
+//  fraud_monitoring.qvs — Fraud monitoring load
+//  Reloaded by TWS job RELOAD_FRAUD_QV (FOLLOWS RELOAD_RISK_QV).
+//  INHERITS the entire data model of risk_dashboard via BINARY,
+//  then adds fraud-score detail from the warehouse.
+// ============================================================
+
+// Inherit risk_dashboard's full data model (RiskExposure, DailyBalances, RegionRisk...)
+BINARY [lib://Apps/risk_dashboard.qvw];
+
+SET ThousandSep=',';
+SET DecimalSep='.';
+SET vEnv='PROD';
+LET vScoreThreshold = 0.5;
+LET vFraudTable = 'FRAUD_SCORES';   // dynamic SQL below -> should flag partial
+
+$(Include=lib://Scripts/common_calendar.qvs);
+
+ODBC CONNECT TO 'WAREHOUSE_$(vEnv)' (UserId is 'bi_reader', Password is 'qv_p@ss_SCRUB_ME');
+
+// Fraud scores mart (written by fraud_scoring.py)
+FraudScores:
+LOAD
+    txn_id,
+    customer_id,
+    account_id,
+    branch_id,
+    region,
+    amount_abs,
+    fraud_score,
+    fraud_flag,
+    txn_date
+;
+SQL SELECT txn_id, customer_id, account_id, branch_id, region,
+           amount_abs, fraud_score, fraud_flag, txn_date
+    FROM PROD.MART.FRAUD_SCORES
+    WHERE fraud_score >= $(vScoreThreshold);
+
+// High-risk customers (RESIDENT derivation joining inherited RiskExposure)
+HighRiskCustomers:
+LOAD
+    customer_id,
+    region,
+    COUNT(txn_id)     AS FlaggedTxnCount,
+    SUM(amount_abs)   AS FlaggedAmount,
+    MAX(fraud_score)  AS PeakScore
+RESIDENT FraudScores
+WHERE fraud_flag = -1
+GROUP BY customer_id, region;
+
+// Dynamic SQL from a variable -> parser flags lineage_partial
+RefundRisk:
+LOAD *;
+SQL SELECT * FROM PROD.MART.$(vFraudTable)_REFUNDS;
+
+// Map fraud band
+FraudBandMap:
+MAPPING LOAD * INLINE [
+    Band, Label
+    1, Low
+    2, Medium
+    3, High
+];
+
+EXIT Script;

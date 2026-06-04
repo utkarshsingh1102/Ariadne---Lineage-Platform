@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<workbook source-build='2023.1.0' version='18.1' xmlns:user='http://www.tableausoftware.com/xml/user'>
+  <datasources>
+    <!-- Custom SQL joining daily_balances to the branch dimension -->
+    <datasource caption='Branch Daily' inline='true' name='federated.branch01'>
+      <connection class='federated'>
+        <named-connections>
+          <named-connection caption='WAREHOUSE_PROD' name='snowflake.wh.1'>
+            <connection class='snowflake' dbname='PROD' schema='MART' server='acme.snowflakecomputing.com' username='bi_reader' password='tab_SCRUB_ME' warehouse='WH_BI' />
+          </named-connection>
+        </named-connections>
+        <_.fcp.ObjectModelEncapsulateLegacy.true...relation connection='snowflake.wh.1' name='Custom SQL Query' type='text'>
+          SELECT d.txn_date,
+                 d.branch_id,
+                 b.branch_name,
+                 d.region,
+                 d.daily_net_amount,
+                 d.daily_txn_count,
+                 d.active_customers
+          FROM PROD.MART.DAILY_BALANCES d
+          INNER JOIN PROD.DIM.BRANCH b ON d.branch_id = b.branch_id
+        </_.fcp.ObjectModelEncapsulateLegacy.true...relation>
+      </connection>
+      <column datatype='date' name='[txn_date]' role='dimension' type='ordinal' />
+      <column datatype='integer' name='[branch_id]' role='dimension' type='ordinal' />
+      <column datatype='string' name='[branch_name]' role='dimension' type='nominal' />
+      <column datatype='string' name='[region]' role='dimension' type='nominal' />
+      <column datatype='real' name='[daily_net_amount]' role='measure' type='quantitative' />
+      <column datatype='integer' name='[daily_txn_count]' role='measure' type='quantitative' />
+      <column datatype='integer' name='[active_customers]' role='measure' type='quantitative' />
+
+      <!-- Table calc -->
+      <column caption='Net Amount MTD' datatype='real' name='[Calculation_MTD]' role='measure' type='quantitative'>
+        <calculation class='tableau' formula='RUNNING_SUM(SUM([daily_net_amount]))' />
+      </column>
+      <!-- Branch hierarchy -->
+      <drill-path name='Branch Drilldown'>
+        <field>[region]</field>
+        <field>[branch_name]</field>
+      </drill-path>
+    </datasource>
+  </datasources>
+
+  <worksheets>
+    <worksheet name='Branch Net Amount Trend'>
+      <table>
+        <view>
+          <datasources>
+            <datasource caption='Branch Daily' name='federated.branch01' />
+          </datasources>
+          <datasource-dependencies datasource='federated.branch01'>
+            <column datatype='date' name='[txn_date]' role='dimension' type='ordinal' />
+            <column datatype='string' name='[branch_name]' role='dimension' type='nominal' />
+            <column datatype='real' name='[Calculation_MTD]' role='measure' type='quantitative' />
+          </datasource-dependencies>
+        </view>
+        <rows>[federated.branch01].[Calculation_MTD]</rows>
+        <cols>[federated.branch01].[txn_date]</cols>
+      </table>
+    </worksheet>
+  </worksheets>
+
+  <dashboards>
+    <dashboard name='Branch Operations Dashboard'>
+      <zones>
+        <zone h='100000' id='3' w='100000' x='0' y='0'>
+          <zone h='100000' id='4' name='Branch Net Amount Trend' w='100000' x='0' y='0' />
+        </zone>
+      </zones>
+    </dashboard>
+  </dashboards>
+</workbook>

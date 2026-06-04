@@ -1,0 +1,47 @@
+*------------------------------------------------------------
+* TWS Composer Dump — BI Refresh (DOWNSTREAM of core load)
+* Demonstrates cross-FILE schedule->schedule FOLLOWS: this
+* schedule FOLLOWS DAILY_CORE_BANKING_LOAD defined in
+* tws_core_banking.txt (resolved when parsed together via batch).
+* Jobs trigger QlikView reloads and Tableau extract refreshes.
+*------------------------------------------------------------
+
+SCHEDULE WS_BI#MASTER#DAILY_BI_REFRESH
+  ON RUNCYCLE EVERY_DAY VALIDFROM 01/01/2025
+  AT 0615
+  PRIORITY 50
+  FOLLOWS WS_ETL#MASTER#DAILY_CORE_BANKING_LOAD
+:
+
+  RELOAD_RISK_QV
+    SCRIPTNAME "/apps/qlik/reload.sh risk_dashboard.qvs"
+    RECOVERY CONTINUE
+    NEEDS 1 QLIK_ENGINE
+
+  RELOAD_FRAUD_QV
+    SCRIPTNAME "/apps/qlik/reload.sh fraud_monitoring.qvs"
+    FOLLOWS RELOAD_RISK_QV
+    NEEDS 1 QLIK_ENGINE
+
+  RELOAD_BRANCH_QV
+    SCRIPTNAME "/apps/qlik/reload.sh branch_ops.qvs"
+    FOLLOWS RELOAD_FRAUD_QV
+    NEEDS 1 QLIK_ENGINE
+
+  REFRESH_EXEC_RISK_TAB
+    SCRIPTNAME "/apps/tableau/refresh.sh exec_risk"
+    FOLLOWS RELOAD_RISK_QV
+
+  REFRESH_FRAUD_TAB
+    SCRIPTNAME "/apps/tableau/refresh.sh fraud_analytics"
+    FOLLOWS RELOAD_FRAUD_QV
+
+  REFRESH_BRANCH_TAB
+    SCRIPTNAME "/apps/tableau/refresh.sh branch_ops"
+    FOLLOWS RELOAD_BRANCH_QV
+
+  NOTIFY_BI_TEAM
+    SCRIPTNAME "/apps/shell/notify.sh risk-bi@bank.local"
+    FOLLOWS REFRESH_BRANCH_TAB
+
+END

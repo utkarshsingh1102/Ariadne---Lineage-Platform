@@ -632,6 +632,14 @@ async def parse_upload_auto(
                     "status_code": e.status_code,
                 }
 
+    # Cross-parser orchestration stitch — link every TWS :Script whose
+    # path is a wrapper invocation ("submit.sh foo.py", "reload.sh
+    # bar.qvs", "refresh.sh baz") to the matching :SparkScript /
+    # :QlikScript / :TableauWorkbook by file basename. This makes the
+    # lineage graph show "TWS job -> Spark script" as a real edge
+    # instead of an orphaned :Script wrapper.
+    stitched = await _stitch_invokes_file()
+
     return {
         "status": overall_status,
         "batch_uuid": batch_uuid,
@@ -642,7 +650,84 @@ async def parse_upload_auto(
         # that had ≥2 files in this batch. Tells the user which cross-file
         # connections the parser actually resolved between their files.
         "cross_file_analysis": cross_files_info,
+        "stitched_invokes_file": stitched,
     }
+
+
+# ---------------------------------------------------------------------------
+# Cross-parser stitching helpers
+# ---------------------------------------------------------------------------
+
+_INVOKES_FILE_CYPHER = """
+// For every TWS :Script node whose path is a wrapper invocation
+// ("submit.sh foo.py", "reload.sh bar.qvs", "refresh.sh baz"),
+// inspect the target file's extension and MERGE an INVOKES_FILE edge
+// only to the matching label class:
+//
+//   .py .sql .ipynb .scala  -> :SparkScript
+//   .qvs .qvw .qvf          -> :QlikScript
+//   .twb .twbx              -> :TableauWorkbook
+//   (no extension)          -> all three; the wrapper basename hints at
+//                              which is intended (refresh.sh = Tableau,
+//                              reload.sh = QlikView, submit.sh = Spark).
+//
+// Match by basename minus extension, lowercased. Idempotent on re-run.
+MATCH (s:Script)
+WHERE s.path CONTAINS ' '
+WITH s,
+     split(s.path, ' ') AS toks
+WITH s, toks[size(toks) - 1] AS last_tok,
+     toks[0] AS wrapper_path
+WITH s, last_tok, wrapper_path,
+     CASE
+       WHEN last_tok CONTAINS '.' THEN toLower(split(last_tok, '.')[size(split(last_tok, '.')) - 1])
+       ELSE ''
+     END AS ext,
+     CASE
+       WHEN last_tok CONTAINS '.'
+         THEN toLower(reduce(acc = '', x IN split(last_tok, '.')[..-1] | acc + CASE WHEN acc = '' THEN '' ELSE '.' END + x))
+       ELSE toLower(last_tok)
+     END AS target_base,
+     toLower(split(wrapper_path, '/')[size(split(wrapper_path, '/')) - 1]) AS wrapper_base
+WHERE target_base IS NOT NULL AND target_base <> ''
+WITH s, target_base, ext, wrapper_base,
+     ext IN ['py','sql','ipynb','scala'] AS is_spark,
+     ext IN ['qvs','qvw','qvf']           AS is_qlik,
+     ext IN ['twb','twbx']                AS is_tableau,
+     ext = ''                              AS has_no_ext
+// When the file has no extension we fall back to the wrapper-name hint.
+WITH s, target_base,
+     is_spark   OR (has_no_ext AND wrapper_base CONTAINS 'submit')   AS link_spark,
+     is_qlik    OR (has_no_ext AND wrapper_base CONTAINS 'reload')   AS link_qlik,
+     is_tableau OR (has_no_ext AND wrapper_base CONTAINS 'refresh')  AS link_tableau
+OPTIONAL MATCH (sp:SparkScript)     WHERE link_spark   AND toLower(sp.name) = target_base
+OPTIONAL MATCH (qv:QlikScript)      WHERE link_qlik    AND toLower(coalesce(qv.basename, qv.name)) = target_base
+OPTIONAL MATCH (tb:TableauWorkbook) WHERE link_tableau AND toLower(tb.name) = target_base
+FOREACH (x IN [n IN [sp] WHERE n IS NOT NULL] | MERGE (s)-[:INVOKES_FILE]->(x))
+FOREACH (x IN [n IN [qv] WHERE n IS NOT NULL] | MERGE (s)-[:INVOKES_FILE]->(x))
+FOREACH (x IN [n IN [tb] WHERE n IS NOT NULL] | MERGE (s)-[:INVOKES_FILE]->(x))
+RETURN count(DISTINCT s) AS scripts_processed
+"""
+
+_INVOKES_FILE_EDGE_COUNT_CYPHER = """
+MATCH ()-[r:INVOKES_FILE]->() RETURN count(r) AS n
+"""
+
+
+async def _stitch_invokes_file() -> dict[str, int]:
+    """Run the INVOKES_FILE stitching Cypher and return how many edges
+    exist afterward. Failures (Neo4j unreachable, syntax error in the
+    cypher, etc.) are logged-but-swallowed so they don't fail the parse
+    response — the per-file edges are already in the graph regardless.
+    """
+    try:
+        from . import neo4j_client
+        async with neo4j_client.session() as s:
+            await s.run(_INVOKES_FILE_CYPHER)
+            edge_count = await (await s.run(_INVOKES_FILE_EDGE_COUNT_CYPHER)).single()
+            return {"edges_total": int(edge_count["n"]) if edge_count else 0}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @router.get("/parsers/health")

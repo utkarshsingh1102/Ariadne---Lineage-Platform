@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TWS XML export — Weekly Regulatory Reporting
+  Same scheduling language, XML form (tests the XML reader path).
+  RECON_BALANCES re-runs the customer_360 build for regulators,
+  so it CALLS_SCRIPT the same customer_360.sql node -> merges with
+  the daily schedule's CUSTOMER_360 job on one script node.
+-->
+<jobstream name="WEEKLY_REG_REPORTING" workstation="WS_REG" master="MASTER">
+  <runcycle name="WEEKDAYS_EXCEPT_HOLIDAYS" validfrom="2025-01-01"/>
+  <timerestrictions at="2300" until="0200" priority="40"/>
+  <jobs>
+    <job name="RECON_BALANCES">
+      <scriptname>/apps/spark/submit.sh customer_360.sql --env prod --mode regulatory</scriptname>
+      <recovery>STOP</recovery>
+      <needs quantity="1" resource="TERADATA_SESSIONS"/>
+    </job>
+    <job name="EXPORT_REG_FILE">
+      <scriptname>/apps/bteq/export_regulatory.bteq</scriptname>
+      <follows>RECON_BALANCES</follows>
+      <needs quantity="1" resource="TERADATA_SESSIONS"/>
+    </job>
+    <job name="SFTP_TO_REGULATOR">
+      <scriptname>/apps/shell/sftp_push.sh regulator-gateway</scriptname>
+      <follows>EXPORT_REG_FILE</follows>
+      <opens>/data/reg/export_complete.flag</opens>
+    </job>
+  </jobs>
+</jobstream>

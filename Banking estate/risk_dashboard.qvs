@@ -1,0 +1,70 @@
+///$tab Main
+// ============================================================
+//  risk_dashboard.qvs — Risk reporting load (BASE document)
+//  Reloaded by TWS job RELOAD_RISK_QV (FOLLOWS CUSTOMER_360).
+//  Reads warehouse marts written by the Spark layer.
+// ============================================================
+
+SET ThousandSep=',';
+SET DecimalSep='.';
+SET DateFormat='YYYY-MM-DD';
+SET vEnv='PROD';
+LET vAsOfDate = Date(Today()-1, 'YYYY-MM-DD');
+
+$(Include=lib://Scripts/common_calendar.qvs);
+
+// ------------------------------------------------------------
+// Connection to the warehouse
+// ------------------------------------------------------------
+ODBC CONNECT TO 'WAREHOUSE_$(vEnv)' (UserId is 'bi_reader', Password is 'qv_p@ss_SCRUB_ME');
+
+// Risk exposure mart (written by risk_aggregation.py)
+RiskExposure:
+LOAD
+    customer_id,
+    branch_id,
+    region,
+    exposure_amount,
+    max_fraud_score,
+    flagged_txns,
+    risk_weighted_exposure
+;
+SQL SELECT customer_id, branch_id, region, exposure_amount,
+           max_fraud_score, flagged_txns, risk_weighted_exposure
+    FROM PROD.MART.RISK_EXPOSURE;
+
+// Daily balances mart (written by risk_aggregation.py)
+DailyBalances:
+LOAD
+    txn_date,
+    branch_id,
+    region,
+    daily_net_amount,
+    daily_txn_count,
+    active_customers
+;
+SQL SELECT txn_date, branch_id, region, daily_net_amount,
+           daily_txn_count, active_customers
+    FROM PROD.MART.DAILY_BALANCES;
+
+// Region rollup (RESIDENT — in-memory derivation)
+RegionRisk:
+LOAD
+    region,
+    SUM(risk_weighted_exposure) AS TotalRWE,
+    SUM(flagged_txns)           AS TotalFlagged,
+    COUNT(DISTINCT customer_id) AS Customers
+RESIDENT RiskExposure
+GROUP BY region;
+
+// Customer dimension join for names
+LEFT JOIN (RiskExposure)
+LOAD
+    customer_id,
+    customer_name,
+    segment
+;
+SQL SELECT customer_id, customer_name, segment
+    FROM PROD.DIM.CUSTOMERS;
+
+EXIT Script;
