@@ -1,0 +1,97 @@
+{
+  "nodes": [
+    {
+      "data": {
+        "id": "e764e21b785daf4f",
+        "label": "01_single_schedule_single_job.txt",
+        "labels": [
+          "TwsFile"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "file_path": "/data/inputs/01_single_schedule_single_job.txt"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "ecdb8457dcc2e509",
+        "label": "SIMPLE_LOAD",
+        "labels": [
+          "Schedule"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "workstation": "WORKSTATION_A",
+          "run_cycle": "EVERY_WEEKDAY",
+          "days_of_week": [
+            "MON",
+            "TUE",
+            "WED",
+            "THU",
+            "FRI"
+          ],
+          "cron_equivalent": "30 5 * * 1-5"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "d5050b082adc1535",
+        "label": "EXTRACT_DATA",
+        "labels": [
+          "Job"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "workstation": "WORKSTATION_A",
+          "stream": "SIMPLE_LOAD"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "52b286c02f1829b2",
+        "label": "run.sh",
+        "labels": [
+          "Script"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "path": "/apps/abinitio/run.sh"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "data": {
+        "id": "e764e21b785daf4f->ecdb8457dcc2e509",
+        "source": "e764e21b785daf4f",
+        "target": "ecdb8457dcc2e509",
+        "label": "CONTAINS_SCHEDULE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "ecdb8457dcc2e509-CONTAINS_JOB-d5050b082adc1535",
+        "source": "ecdb8457dcc2e509",
+        "target": "d5050b082adc1535",
+        "label": "CONTAINS_JOB",
+        "properties": {
+          "order": 0
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "d5050b082adc1535-EXECUTES-52b286c02f1829b2",
+        "source": "d5050b082adc1535",
+        "target": "52b286c02f1829b2",
+        "label": "EXECUTES",
+        "properties": {}
+      }
+    }
+  ]
+}

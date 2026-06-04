@@ -1,0 +1,207 @@
+{
+  "nodes": [
+    {
+      "data": {
+        "id": "03_left_join",
+        "label": "03_left_join",
+        "labels": [
+          "QlikScript"
+        ],
+        "source_system": "qlikview",
+        "properties": {
+          "file_path": "/data/inputs/03_left_join.qvs"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "qt:Customer",
+        "label": "Customer",
+        "labels": [
+          "QlikTable"
+        ],
+        "source_system": "qlikview",
+        "properties": {
+          "source_type": "SQL",
+          "source_table": "PROD.SALES.CUSTOMER"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "qa:Customer.CustomerID",
+        "label": "CustomerID",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "qlikview",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qa:Customer.CustomerName",
+        "label": "CustomerName",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "qlikview",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qa:Customer.Region",
+        "label": "Region",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "qlikview",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qt:Orders",
+        "label": "Orders",
+        "labels": [
+          "QlikTable"
+        ],
+        "source_system": "qlikview",
+        "properties": {
+          "source_type": "SQL",
+          "source_table": "PROD.SALES.ORDERS"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "qa:Orders.OrderID",
+        "label": "OrderID",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "qlikview",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qa:Orders.CustomerID",
+        "label": "CustomerID",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "qlikview",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qa:Orders.Amount",
+        "label": "Amount",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "qlikview",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qc:TERADATA_PROD",
+        "label": "TERADATA_PROD",
+        "labels": [
+          "Connection"
+        ],
+        "source_system": "qlikview",
+        "properties": {
+          "type": "ODBC"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "data": {
+        "id": "03_left_join-CONTAINS_TABLE-qt:Customer",
+        "source": "03_left_join",
+        "target": "qt:Customer",
+        "label": "CONTAINS_TABLE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qt:Customer-HAS_ATTRIBUTE-qa:Customer.CustomerID",
+        "source": "qt:Customer",
+        "target": "qa:Customer.CustomerID",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qt:Customer-HAS_ATTRIBUTE-qa:Customer.CustomerName",
+        "source": "qt:Customer",
+        "target": "qa:Customer.CustomerName",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qt:Customer-HAS_ATTRIBUTE-qa:Customer.Region",
+        "source": "qt:Customer",
+        "target": "qa:Customer.Region",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "03_left_join-CONTAINS_TABLE-qt:Orders",
+        "source": "03_left_join",
+        "target": "qt:Orders",
+        "label": "CONTAINS_TABLE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qt:Orders-HAS_ATTRIBUTE-qa:Orders.OrderID",
+        "source": "qt:Orders",
+        "target": "qa:Orders.OrderID",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qt:Orders-HAS_ATTRIBUTE-qa:Orders.CustomerID",
+        "source": "qt:Orders",
+        "target": "qa:Orders.CustomerID",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qt:Orders-HAS_ATTRIBUTE-qa:Orders.Amount",
+        "source": "qt:Orders",
+        "target": "qa:Orders.Amount",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "03_left_join-USES_CONNECTION-qc:TERADATA_PROD",
+        "source": "03_left_join",
+        "target": "qc:TERADATA_PROD",
+        "label": "USES_CONNECTION",
+        "properties": {}
+      }
+    }
+  ]
+}

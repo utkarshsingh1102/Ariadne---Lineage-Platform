@@ -1,0 +1,760 @@
+{
+  "nodes": [
+    {
+      "data": {
+        "id": "f0658114a3d6431b",
+        "label": "06_realistic_dump_many_schedules.txt",
+        "labels": [
+          "TwsFile"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "file_path": "/data/inputs/06_realistic_dump_many_schedules.txt"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "7b2e99e64b099785",
+        "label": "NIGHTLY_INFRA_CHECK",
+        "labels": [
+          "Schedule"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "workstation": "WS_PROD",
+          "run_cycle": "EVERY_WEEKDAY",
+          "days_of_week": [
+            "MON",
+            "TUE",
+            "WED",
+            "THU",
+            "FRI"
+          ],
+          "cron_equivalent": "0 2 * * 1-5"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "8d9ffc4c8c264e40",
+        "label": "CHECK_DISK",
+        "labels": [
+          "Job"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "workstation": "WS_PROD",
+          "stream": "NIGHTLY_INFRA_CHECK"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "2eb189205bcebab4",
+        "label": "check_disk.sh",
+        "labels": [
+          "Script"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "path": "/apps/ops/check_disk.sh"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "4c0acb03fcf872a2",
+        "label": "CHECK_NETWORK",
+        "labels": [
+          "Job"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "workstation": "WS_PROD",
+          "stream": "NIGHTLY_INFRA_CHECK"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "419915c427dde03f",
+        "label": "check_network.sh",
+        "labels": [
+          "Script"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "path": "/apps/ops/check_network.sh"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "03ff44bf3d615918",
+        "label": "CHECK_DB_HEALTH",
+        "labels": [
+          "Job"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "workstation": "WS_PROD",
+          "stream": "NIGHTLY_INFRA_CHECK"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "68a1429d6fe83486",
+        "label": "check_db.sh",
+        "labels": [
+          "Script"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "path": "/apps/ops/check_db.sh"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "35946b111cf4addf",
+        "label": "DB_HEALTH_CHECK_SLOT",
+        "labels": [
+          "Resource"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "quantity": 1
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "a6de3f8947629100",
+        "label": "DAILY_SALES_LOAD",
+        "labels": [
+          "Schedule"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "workstation": "WS_PROD",
+          "run_cycle": "EVERY_WEEKDAY",
+          "days_of_week": [
+            "MON",
+            "TUE",
+            "WED",
+            "THU",
+            "FRI"
+          ],
+          "cron_equivalent": "30 5 * * 1-5"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "19d0db7562828d40",
+        "label": "WAIT_SALES_FEED",
+        "labels": [
+          "Job"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "workstation": "WS_PROD",
+          "stream": "DAILY_SALES_LOAD"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "6701feae56d69596",
+        "label": "await.sh",
+        "labels": [
+          "Script"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "path": "/apps/feeds/await.sh"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "5c306a44399cdf1f",
+        "label": "sales_YYYYMMDD.csv",
+        "labels": [
+          "FileWatcher"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "path": "/data/feeds/sales_YYYYMMDD.csv"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "5e167c83dc638c55",
+        "label": "EXTRACT_ORDERS",
+        "labels": [
+          "Job"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "workstation": "WS_PROD",
+          "stream": "DAILY_SALES_LOAD"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "52b286c02f1829b2",
+        "label": "run.sh",
+        "labels": [
+          "Script"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "path": "/apps/abinitio/run.sh"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "9fe2a2d1406bc0fb",
+        "label": "TRANSFORM_ORDERS",
+        "labels": [
+          "Job"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "workstation": "WS_PROD",
+          "stream": "DAILY_SALES_LOAD"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "52b286c02f1829b2",
+        "label": "run.sh",
+        "labels": [
+          "Script"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "path": "/apps/abinitio/run.sh"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "352ee6c7795483ad",
+        "label": "LOAD_ORDERS_TO_DW",
+        "labels": [
+          "Job"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "workstation": "WS_PROD",
+          "stream": "DAILY_SALES_LOAD"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "ff099c1d1ac96962",
+        "label": "load_orders.bteq",
+        "labels": [
+          "Script"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "path": "/apps/bteq/load_orders.bteq"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "cb346b698dc28bd6",
+        "label": "DW_LOAD_SLOT",
+        "labels": [
+          "Resource"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "quantity": 1
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "faec5169c5bcd37a",
+        "label": "REFRESH_TABLEAU_EXTRACT",
+        "labels": [
+          "Job"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "workstation": "WS_PROD",
+          "stream": "DAILY_SALES_LOAD"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "bff4554d4cf21456",
+        "label": "refresh.sh",
+        "labels": [
+          "Script"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "path": "/apps/tableau/refresh.sh"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "b3fbdb8bcad5eade",
+        "label": "FINANCE_RECON",
+        "labels": [
+          "Schedule"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "workstation": "WS_PROD",
+          "run_cycle": "EVERY_WEEKDAY",
+          "days_of_week": [
+            "MON",
+            "TUE",
+            "WED",
+            "THU",
+            "FRI"
+          ],
+          "cron_equivalent": "0 7 * * 1-5"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "4f9512e7e05e85b5",
+        "label": "RECON_GL_VS_SALES",
+        "labels": [
+          "Job"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "workstation": "WS_PROD",
+          "stream": "FINANCE_RECON"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "0eb181ceba962d9d",
+        "label": "recon.sh",
+        "labels": [
+          "Script"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "path": "/apps/finance/recon.sh"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "8fb67d879b03265a",
+        "label": "RECON_LOCK",
+        "labels": [
+          "Resource"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "quantity": 1
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "d36a25631ab2edd1",
+        "label": "EMAIL_RECON_REPORT",
+        "labels": [
+          "Job"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "workstation": "WS_PROD",
+          "stream": "FINANCE_RECON"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "0f58689203b91c7f",
+        "label": "email_report.sh",
+        "labels": [
+          "Script"
+        ],
+        "source_system": "tws",
+        "properties": {
+          "path": "/apps/finance/email_report.sh"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "data": {
+        "id": "f0658114a3d6431b->7b2e99e64b099785",
+        "source": "f0658114a3d6431b",
+        "target": "7b2e99e64b099785",
+        "label": "CONTAINS_SCHEDULE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "f0658114a3d6431b->a6de3f8947629100",
+        "source": "f0658114a3d6431b",
+        "target": "a6de3f8947629100",
+        "label": "CONTAINS_SCHEDULE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "f0658114a3d6431b->b3fbdb8bcad5eade",
+        "source": "f0658114a3d6431b",
+        "target": "b3fbdb8bcad5eade",
+        "label": "CONTAINS_SCHEDULE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "7b2e99e64b099785-CONTAINS_JOB-8d9ffc4c8c264e40",
+        "source": "7b2e99e64b099785",
+        "target": "8d9ffc4c8c264e40",
+        "label": "CONTAINS_JOB",
+        "properties": {
+          "order": 0
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "8d9ffc4c8c264e40-EXECUTES-2eb189205bcebab4",
+        "source": "8d9ffc4c8c264e40",
+        "target": "2eb189205bcebab4",
+        "label": "EXECUTES",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "7b2e99e64b099785-CONTAINS_JOB-4c0acb03fcf872a2",
+        "source": "7b2e99e64b099785",
+        "target": "4c0acb03fcf872a2",
+        "label": "CONTAINS_JOB",
+        "properties": {
+          "order": 1
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "4c0acb03fcf872a2-EXECUTES-419915c427dde03f",
+        "source": "4c0acb03fcf872a2",
+        "target": "419915c427dde03f",
+        "label": "EXECUTES",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "7b2e99e64b099785-CONTAINS_JOB-03ff44bf3d615918",
+        "source": "7b2e99e64b099785",
+        "target": "03ff44bf3d615918",
+        "label": "CONTAINS_JOB",
+        "properties": {
+          "order": 2
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "03ff44bf3d615918-EXECUTES-68a1429d6fe83486",
+        "source": "03ff44bf3d615918",
+        "target": "68a1429d6fe83486",
+        "label": "EXECUTES",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "03ff44bf3d615918-REQUIRES_RESOURCE-35946b111cf4addf",
+        "source": "03ff44bf3d615918",
+        "target": "35946b111cf4addf",
+        "label": "REQUIRES_RESOURCE",
+        "properties": {
+          "quantity": 1
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "a6de3f8947629100-CONTAINS_JOB-19d0db7562828d40",
+        "source": "a6de3f8947629100",
+        "target": "19d0db7562828d40",
+        "label": "CONTAINS_JOB",
+        "properties": {
+          "order": 0
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "19d0db7562828d40-EXECUTES-6701feae56d69596",
+        "source": "19d0db7562828d40",
+        "target": "6701feae56d69596",
+        "label": "EXECUTES",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "19d0db7562828d40-WAITS_FOR_FILE-5c306a44399cdf1f",
+        "source": "19d0db7562828d40",
+        "target": "5c306a44399cdf1f",
+        "label": "WAITS_FOR_FILE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "a6de3f8947629100-CONTAINS_JOB-5e167c83dc638c55",
+        "source": "a6de3f8947629100",
+        "target": "5e167c83dc638c55",
+        "label": "CONTAINS_JOB",
+        "properties": {
+          "order": 1
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "5e167c83dc638c55-EXECUTES-52b286c02f1829b2",
+        "source": "5e167c83dc638c55",
+        "target": "52b286c02f1829b2",
+        "label": "EXECUTES",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "a6de3f8947629100-CONTAINS_JOB-9fe2a2d1406bc0fb",
+        "source": "a6de3f8947629100",
+        "target": "9fe2a2d1406bc0fb",
+        "label": "CONTAINS_JOB",
+        "properties": {
+          "order": 2
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "9fe2a2d1406bc0fb-EXECUTES-52b286c02f1829b2",
+        "source": "9fe2a2d1406bc0fb",
+        "target": "52b286c02f1829b2",
+        "label": "EXECUTES",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "a6de3f8947629100-CONTAINS_JOB-352ee6c7795483ad",
+        "source": "a6de3f8947629100",
+        "target": "352ee6c7795483ad",
+        "label": "CONTAINS_JOB",
+        "properties": {
+          "order": 3
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "352ee6c7795483ad-EXECUTES-ff099c1d1ac96962",
+        "source": "352ee6c7795483ad",
+        "target": "ff099c1d1ac96962",
+        "label": "EXECUTES",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "352ee6c7795483ad-REQUIRES_RESOURCE-cb346b698dc28bd6",
+        "source": "352ee6c7795483ad",
+        "target": "cb346b698dc28bd6",
+        "label": "REQUIRES_RESOURCE",
+        "properties": {
+          "quantity": 1
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "a6de3f8947629100-CONTAINS_JOB-faec5169c5bcd37a",
+        "source": "a6de3f8947629100",
+        "target": "faec5169c5bcd37a",
+        "label": "CONTAINS_JOB",
+        "properties": {
+          "order": 4
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "faec5169c5bcd37a-EXECUTES-bff4554d4cf21456",
+        "source": "faec5169c5bcd37a",
+        "target": "bff4554d4cf21456",
+        "label": "EXECUTES",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "b3fbdb8bcad5eade-CONTAINS_JOB-4f9512e7e05e85b5",
+        "source": "b3fbdb8bcad5eade",
+        "target": "4f9512e7e05e85b5",
+        "label": "CONTAINS_JOB",
+        "properties": {
+          "order": 0
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "4f9512e7e05e85b5-EXECUTES-0eb181ceba962d9d",
+        "source": "4f9512e7e05e85b5",
+        "target": "0eb181ceba962d9d",
+        "label": "EXECUTES",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "4f9512e7e05e85b5-REQUIRES_RESOURCE-8fb67d879b03265a",
+        "source": "4f9512e7e05e85b5",
+        "target": "8fb67d879b03265a",
+        "label": "REQUIRES_RESOURCE",
+        "properties": {
+          "quantity": 1
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "b3fbdb8bcad5eade-CONTAINS_JOB-d36a25631ab2edd1",
+        "source": "b3fbdb8bcad5eade",
+        "target": "d36a25631ab2edd1",
+        "label": "CONTAINS_JOB",
+        "properties": {
+          "order": 1
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "d36a25631ab2edd1-EXECUTES-0f58689203b91c7f",
+        "source": "d36a25631ab2edd1",
+        "target": "0f58689203b91c7f",
+        "label": "EXECUTES",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "4c0acb03fcf872a2-FOLLOWS-8d9ffc4c8c264e40-",
+        "source": "4c0acb03fcf872a2",
+        "target": "8d9ffc4c8c264e40",
+        "label": "FOLLOWS",
+        "properties": {
+          "condition": "",
+          "scope": "internal"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "03ff44bf3d615918-FOLLOWS-4c0acb03fcf872a2-",
+        "source": "03ff44bf3d615918",
+        "target": "4c0acb03fcf872a2",
+        "label": "FOLLOWS",
+        "properties": {
+          "condition": "",
+          "scope": "internal"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "5e167c83dc638c55-FOLLOWS-19d0db7562828d40-",
+        "source": "5e167c83dc638c55",
+        "target": "19d0db7562828d40",
+        "label": "FOLLOWS",
+        "properties": {
+          "condition": "",
+          "scope": "internal"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "9fe2a2d1406bc0fb-FOLLOWS-5e167c83dc638c55-",
+        "source": "9fe2a2d1406bc0fb",
+        "target": "5e167c83dc638c55",
+        "label": "FOLLOWS",
+        "properties": {
+          "condition": "",
+          "scope": "internal"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "352ee6c7795483ad-FOLLOWS-9fe2a2d1406bc0fb-",
+        "source": "352ee6c7795483ad",
+        "target": "9fe2a2d1406bc0fb",
+        "label": "FOLLOWS",
+        "properties": {
+          "condition": "",
+          "scope": "internal"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "faec5169c5bcd37a-FOLLOWS-352ee6c7795483ad-",
+        "source": "faec5169c5bcd37a",
+        "target": "352ee6c7795483ad",
+        "label": "FOLLOWS",
+        "properties": {
+          "condition": "",
+          "scope": "internal"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "d36a25631ab2edd1-FOLLOWS-4f9512e7e05e85b5-",
+        "source": "d36a25631ab2edd1",
+        "target": "4f9512e7e05e85b5",
+        "label": "FOLLOWS",
+        "properties": {
+          "condition": "",
+          "scope": "internal"
+        }
+      }
+    }
+  ]
+}

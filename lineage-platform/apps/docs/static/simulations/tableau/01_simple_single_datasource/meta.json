@@ -1,0 +1,10 @@
+{
+  "parser": "tableau",
+  "fixture": "01_simple_single_datasource.twb",
+  "stats": {
+    "datasources": 1,
+    "worksheets": 1,
+    "dashboards": 0,
+    "attributes": 3
+  }
+}

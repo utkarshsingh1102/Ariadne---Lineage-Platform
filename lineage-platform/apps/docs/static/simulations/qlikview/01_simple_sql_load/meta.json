@@ -1,0 +1,11 @@
+{
+  "parser": "qlikview",
+  "fixture": "01_simple_sql_load.qvs",
+  "stats": {
+    "loads": 1,
+    "connections": 1,
+    "variables": 0,
+    "subroutines": 0,
+    "fields": 3
+  }
+}

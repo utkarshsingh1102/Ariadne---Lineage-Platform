@@ -245,6 +245,29 @@ services:
     depends_on:
       - gateway
 
+  # Phase 6 — enterprise documentation site (Docusaurus 3, served by nginx).
+  # API reference pages auto-generate at build time from each service's
+  # /openapi.json. Build args carry the service URLs into the build stage
+  # so the auto-gen step resolves them via compose DNS; if those fetches
+  # fail (e.g. building before the rest of the stack is up), the build
+  # falls back to the checked-in snapshots in apps/docs/scripts/snapshots/.
+  docs:
+    <<: *restart_policy
+    build:
+      context: ./apps/docs
+      dockerfile: Dockerfile
+      args:
+        GATEWAY_URL:  http://gateway:8000
+        TABLEAU_URL:  http://tableau-parser:8000
+        TWS_URL:      http://tws-parser:8000
+        QLIKVIEW_URL: http://qlikview-parser:8000
+        SPARK_URL:    http://spark-parser:8000
+    container_name: lineage-docs
+    ports:
+      - "3002:80"
+    depends_on:
+      - gateway
+
 volumes:
   neo4j_data:
   neo4j_logs:

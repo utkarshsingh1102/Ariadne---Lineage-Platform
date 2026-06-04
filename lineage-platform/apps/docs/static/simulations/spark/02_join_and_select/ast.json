@@ -1,0 +1,34 @@
+{
+  "body": [
+    {
+      "type": "ImportFrom",
+      "lineno": 5,
+      "name": null
+    },
+    {
+      "type": "Assign",
+      "lineno": 7,
+      "name": null
+    },
+    {
+      "type": "Assign",
+      "lineno": 9,
+      "name": null
+    },
+    {
+      "type": "Assign",
+      "lineno": 10,
+      "name": null
+    },
+    {
+      "type": "Assign",
+      "lineno": 12,
+      "name": null
+    },
+    {
+      "type": "Expr",
+      "lineno": 18,
+      "name": null
+    }
+  ]
+}

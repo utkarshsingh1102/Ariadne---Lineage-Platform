@@ -1,0 +1,72 @@
+---
+title: TWS parser
+sidebar_label: TWS parser
+---
+
+import ParserSimulator from '@site/src/components/ParserSimulator';
+
+# TWS parser
+
+Composer DSL via ANTLR4 — `:TwsFile`, `:Schedule`, `:JobStream`, `:Job`,
+plus run-cycle / RRULE / RC=N branching.
+
+## Simulator — single schedule, single job
+
+The simplest possible input — one schedule containing one job that runs
+a script. Walk the tabs left-to-right to see every stage the parser
+produces: raw text → tokens → parse tree → IR → Cypher MERGE batch →
+resulting graph.
+
+<ParserSimulator parser="tws" fixture="01_single_schedule_single_job" />
+
+## Simulator — realistic dump with three schedules
+
+A multi-stream realistic fixture: three schedules across two workstations,
+job-to-job FOLLOWS chains, schedule-to-schedule cross-stream dependencies,
+shared resources, and a couple of intentionally unresolved references
+that surface as `warnings`.
+
+<ParserSimulator parser="tws" fixture="06_realistic_dump_many_schedules" />
+
+## Pipeline
+
+The seven-stage pipeline:
+
+1. **Format detect** — `parser/format_detector.py` routes composer-DSL
+   (`.txt`) and XML-export inputs to different front-ends.
+2. **Lex** — ANTLR4 lexer from `grammar/TWSComposerLexer.g4` produces the
+   token stream visible in the simulator's **Tokens** tab.
+3. **Parse** — ANTLR4 parser from `grammar/TWSComposerParser.g4` builds
+   the rule tree visible in the **Parse tree** tab.
+4. **Visit** — `visitor/ir_visitor.py` walks the tree and populates
+   `ScheduleIR` + `JobStreamIR` records (plus calendars / prompts /
+   resources / event rules). Run-cycle names like `WORKDAYS` and
+   `MONTHSTART` are normalised by `parser/run_cycle.py` to derive
+   `cron_equivalent`, `days_of_week` and `days_of_month`.
+5. **Resolve** — `parser/dependencies.py:resolve_full()` classifies every
+   FOLLOWS as internal vs external, resolves `RECOVERY AFTER` and
+   `ON … RC=N` branches, synthesises implicit Resource / Calendar /
+   Prompt nodes for inline references.
+6. **Write** — `graph/writer.py:write_topology()` emits the `:TwsFile`
+   wrapper, `CONTAINS_SCHEDULE` edges, and the full 10-label topology.
+   The simulator's **Cypher** tab shows representative MERGE templates
+   the writer would execute.
+7. **Mirror** — `rdbms/writer.py` writes the legacy `ScheduleIR` rows to
+   Postgres `tws.schedules` / `tws.jobs` for the operational SQL views.
+
+## Where the code lives
+
+| Stage | File |
+|---|---|
+| Grammar | `tws-parser/grammar/TWSComposerLexer.g4`, `…ComposerParser.g4` |
+| Visitor | `tws-parser/src/tws_parser/visitor/ir_visitor.py` |
+| IR | `tws-parser/src/tws_parser/models/domain.py` |
+| Resolver | `tws-parser/src/tws_parser/parser/dependencies.py` |
+| Writer | `tws-parser/src/tws_parser/graph/writer.py` |
+| Identity | `tws-parser/src/tws_parser/utils/ids.py` |
+
+## See also
+
+- [API reference](/reference/openapi/tws) — every endpoint the TWS parser exposes.
+- [TWS tests](/tests/tws) — fixture catalogue and excerpts.
+- [Pipeline architecture](/parsers/architecture) — shared pattern across all four parsers.

@@ -1,0 +1,195 @@
+{
+  "tag": "workbook",
+  "attrs": {
+    "version": "2024.1",
+    "source-platform": "mac"
+  },
+  "children": [
+    {
+      "tag": "datasources",
+      "attrs": {},
+      "children": [
+        {
+          "tag": "datasource",
+          "attrs": {
+            "caption": "Orders",
+            "name": "orders_ds",
+            "inline": "true"
+          },
+          "children": [
+            {
+              "tag": "connection",
+              "attrs": {
+                "class": "teradata",
+                "server": "td-prod",
+                "dbname": "PROD",
+                "schema": "SALES"
+              },
+              "children": []
+            },
+            {
+              "tag": "relation",
+              "attrs": {
+                "name": "Orders",
+                "table": "[SALES].[Orders]",
+                "type": "table"
+              },
+              "children": []
+            },
+            {
+              "tag": "<_Comment>",
+              "attrs": {},
+              "children": []
+            },
+            {
+              "tag": "column",
+              "attrs": {
+                "datatype": "integer",
+                "name": "[OrderID]",
+                "role": "dimension",
+                "type": "ordinal"
+              },
+              "children": []
+            },
+            {
+              "tag": "column",
+              "attrs": {
+                "datatype": "integer",
+                "name": "[CustomerID]",
+                "role": "dimension",
+                "type": "ordinal"
+              },
+              "children": []
+            },
+            {
+              "tag": "column",
+              "attrs": {
+                "datatype": "real",
+                "name": "[Amount]",
+                "role": "measure",
+                "type": "quantitative"
+              },
+              "children": []
+            },
+            {
+              "tag": "column",
+              "attrs": {
+                "datatype": "date",
+                "name": "[OrderDate]",
+                "role": "dimension",
+                "type": "ordinal"
+              },
+              "children": []
+            },
+            {
+              "tag": "<_Comment>",
+              "attrs": {},
+              "children": []
+            },
+            {
+              "tag": "column",
+              "attrs": {
+                "datatype": "real",
+                "name": "[AmountWithTax]",
+                "role": "measure",
+                "type": "quantitative"
+              },
+              "children": [
+                {
+                  "tag": "calculation",
+                  "children": [
+                    {
+                      "_": "\u2026truncated\u2026"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "tag": "<_Comment>",
+              "attrs": {},
+              "children": []
+            },
+            {
+              "tag": "column",
+              "attrs": {
+                "datatype": "real",
+                "name": "[Profit]",
+                "role": "measure",
+                "type": "quantitative"
+              },
+              "children": [
+                {
+                  "tag": "calculation",
+                  "children": [
+                    {
+                      "_": "\u2026truncated\u2026"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "tag": "<_Comment>",
+              "attrs": {},
+              "children": []
+            },
+            {
+              "tag": "column",
+              "attrs": {
+                "datatype": "real",
+                "name": "[TotalPerCustomer]",
+                "role": "measure",
+                "type": "quantitative"
+              },
+              "children": [
+                {
+                  "tag": "calculation",
+                  "children": [
+                    {
+                      "_": "\u2026truncated\u2026"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "tag": "<_Comment>",
+              "attrs": {},
+              "children": []
+            },
+            {
+              "tag": "column",
+              "attrs": {
+                "datatype": "string",
+                "name": "[OrderTier]",
+                "role": "dimension",
+                "type": "nominal"
+              },
+              "children": [
+                {
+                  "tag": "calculation",
+                  "children": [
+                    {
+                      "_": "\u2026truncated\u2026"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "worksheets",
+      "attrs": {},
+      "children": []
+    },
+    {
+      "tag": "dashboards",
+      "attrs": {},
+      "children": []
+    }
+  ]
+}

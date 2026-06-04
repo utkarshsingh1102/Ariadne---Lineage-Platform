@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Three nodes + edges — abstract lineage glyph. -->
+  <circle cx="14" cy="32" r="6" fill="#0f62fe"/>
+  <circle cx="50" cy="14" r="6" fill="#d12771"/>
+  <circle cx="50" cy="50" r="6" fill="#e67e22"/>
+  <path d="M19 30 L45 16" stroke="#525252" stroke-width="2" fill="none"/>
+  <path d="M19 34 L45 48" stroke="#525252" stroke-width="2" fill="none"/>
+</svg>

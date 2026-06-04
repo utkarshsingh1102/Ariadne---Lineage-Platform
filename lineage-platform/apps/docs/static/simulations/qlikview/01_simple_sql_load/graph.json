@@ -1,0 +1,124 @@
+{
+  "nodes": [
+    {
+      "data": {
+        "id": "01_simple_sql_load",
+        "label": "01_simple_sql_load",
+        "labels": [
+          "QlikScript"
+        ],
+        "source_system": "qlikview",
+        "properties": {
+          "file_path": "/data/inputs/01_simple_sql_load.qvs"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "qt:Customer",
+        "label": "Customer",
+        "labels": [
+          "QlikTable"
+        ],
+        "source_system": "qlikview",
+        "properties": {
+          "source_type": "SQL",
+          "source_table": "PROD.SALES.CUSTOMER"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "qa:Customer.CustomerID",
+        "label": "CustomerID",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "qlikview",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qa:Customer.CustomerName",
+        "label": "CustomerName",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "qlikview",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qa:Customer.Region",
+        "label": "Region",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "qlikview",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qc:TERADATA_PROD",
+        "label": "TERADATA_PROD",
+        "labels": [
+          "Connection"
+        ],
+        "source_system": "qlikview",
+        "properties": {
+          "type": "ODBC"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "data": {
+        "id": "01_simple_sql_load-CONTAINS_TABLE-qt:Customer",
+        "source": "01_simple_sql_load",
+        "target": "qt:Customer",
+        "label": "CONTAINS_TABLE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qt:Customer-HAS_ATTRIBUTE-qa:Customer.CustomerID",
+        "source": "qt:Customer",
+        "target": "qa:Customer.CustomerID",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qt:Customer-HAS_ATTRIBUTE-qa:Customer.CustomerName",
+        "source": "qt:Customer",
+        "target": "qa:Customer.CustomerName",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "qt:Customer-HAS_ATTRIBUTE-qa:Customer.Region",
+        "source": "qt:Customer",
+        "target": "qa:Customer.Region",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "01_simple_sql_load-USES_CONNECTION-qc:TERADATA_PROD",
+        "source": "01_simple_sql_load",
+        "target": "qc:TERADATA_PROD",
+        "label": "USES_CONNECTION",
+        "properties": {}
+      }
+    }
+  ]
+}

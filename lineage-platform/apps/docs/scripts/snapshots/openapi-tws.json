@@ -1,0 +1,804 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "TWS Parser",
+    "description": "Parses IBM TWS schedule/job definitions into the lineage knowledge graph (Neo4j) + Postgres mirror",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/version": {
+      "get": {
+        "summary": "Version",
+        "operationId": "version_version_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parse": {
+      "post": {
+        "summary": "Parse",
+        "operationId": "parse_parse_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parse/batch": {
+      "post": {
+        "summary": "Parse Batch",
+        "operationId": "parse_batch_parse_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/ParseRequest"
+                },
+                "type": "array",
+                "title": "Reqs"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ParseResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Parse Batch Parse Batch Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parse/multi": {
+      "post": {
+        "summary": "Parse Multi",
+        "description": "Parse N TWS composer files, merge their IRs, resolve dependencies\nacross the union, and report which entities + FOLLOWS edges are\nshared between files.\n\nReturns per-file stats + merged stats + commonality report. When\n``write_neo4j=True``, the merged unit is written once with file\nprovenance attached to every node's ``source_files`` property —\nenabling later graph queries to scope by file.",
+        "operationId": "parse_multi_parse_multi_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MultiParseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MultiParseResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/export/excel": {
+      "post": {
+        "summary": "Export Excel",
+        "operationId": "export_excel_export_excel_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExcelExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "summary": "Metrics",
+        "operationId": "metrics_metrics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CommonalityReportPayload": {
+        "properties": {
+          "shared_entities": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/SharedEntityPayload"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Shared Entities"
+          },
+          "file_specific": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "type": "object"
+            },
+            "type": "object",
+            "title": "File Specific"
+          },
+          "cross_file_follows": {
+            "items": {
+              "$ref": "#/components/schemas/CrossFileFollowsPayload"
+            },
+            "type": "array",
+            "title": "Cross File Follows"
+          }
+        },
+        "type": "object",
+        "title": "CommonalityReportPayload"
+      },
+      "CrossFileFollowsPayload": {
+        "properties": {
+          "from_file": {
+            "type": "string",
+            "title": "From File"
+          },
+          "from_job_qualified": {
+            "type": "string",
+            "title": "From Job Qualified"
+          },
+          "to_file": {
+            "type": "string",
+            "title": "To File"
+          },
+          "to_job_qualified": {
+            "type": "string",
+            "title": "To Job Qualified"
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condition"
+          }
+        },
+        "type": "object",
+        "required": [
+          "from_file",
+          "from_job_qualified",
+          "to_file",
+          "to_job_qualified"
+        ],
+        "title": "CrossFileFollowsPayload"
+      },
+      "ExcelExportRequest": {
+        "properties": {
+          "filter": {
+            "$ref": "#/components/schemas/ExcelFilter"
+          }
+        },
+        "type": "object",
+        "title": "ExcelExportRequest"
+      },
+      "ExcelFilter": {
+        "properties": {
+          "schedule_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Id"
+          },
+          "workstation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workstation"
+          },
+          "start_time_min": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Time Min"
+          },
+          "start_time_max": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Time Max"
+          },
+          "script_path_like": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Script Path Like"
+          }
+        },
+        "type": "object",
+        "title": "ExcelFilter"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "neo4j": {
+            "type": "string",
+            "title": "Neo4J"
+          },
+          "postgres": {
+            "type": "string",
+            "title": "Postgres"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "neo4j",
+          "postgres"
+        ],
+        "title": "HealthResponse"
+      },
+      "MultiParseRequest": {
+        "properties": {
+          "file_paths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 2,
+            "title": "File Paths",
+            "description": "Absolute paths to the composer-text or XML files to parse together. Min 2, max 20 per batch."
+          },
+          "write_neo4j": {
+            "type": "boolean",
+            "title": "Write Neo4J",
+            "default": true
+          },
+          "write_postgres": {
+            "type": "boolean",
+            "title": "Write Postgres",
+            "default": false
+          },
+          "overwrite": {
+            "type": "boolean",
+            "title": "Overwrite",
+            "default": false
+          },
+          "strict": {
+            "type": "boolean",
+            "title": "Strict",
+            "default": false
+          },
+          "neo4j_database": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Neo4J Database"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_paths"
+        ],
+        "title": "MultiParseRequest"
+      },
+      "MultiParseResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "partial",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/PerFileResult"
+            },
+            "type": "array",
+            "title": "Files"
+          },
+          "merged_stats": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Merged Stats"
+          },
+          "commonality": {
+            "$ref": "#/components/schemas/CommonalityReportPayload"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/Warning"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "files",
+          "merged_stats",
+          "commonality",
+          "duration_ms"
+        ],
+        "title": "MultiParseResponse"
+      },
+      "ParseRequest": {
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "title": "File Path",
+            "description": "Absolute path to composer-text or XML export"
+          },
+          "format": {
+            "type": "string",
+            "title": "Format",
+            "default": "auto"
+          },
+          "neo4j_database": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Neo4J Database"
+          },
+          "write_neo4j": {
+            "type": "boolean",
+            "title": "Write Neo4J",
+            "default": true
+          },
+          "write_postgres": {
+            "type": "boolean",
+            "title": "Write Postgres",
+            "default": true
+          },
+          "overwrite": {
+            "type": "boolean",
+            "title": "Overwrite",
+            "default": false
+          },
+          "strict": {
+            "type": "boolean",
+            "title": "Strict",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_path"
+        ],
+        "title": "ParseRequest"
+      },
+      "ParseResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "partial",
+              "failed"
+            ],
+            "title": "Status",
+            "default": "ok"
+          },
+          "parsed_schedules": {
+            "type": "integer",
+            "title": "Parsed Schedules"
+          },
+          "parsed_jobs": {
+            "type": "integer",
+            "title": "Parsed Jobs"
+          },
+          "stats": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Stats"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/Warning"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "default": []
+          },
+          "parsed_node_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Parsed Node Ids",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "parsed_schedules",
+          "parsed_jobs",
+          "stats",
+          "duration_ms"
+        ],
+        "title": "ParseResponse"
+      },
+      "PerFileResult": {
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "title": "File Path"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "partial",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "parsed_schedules": {
+            "type": "integer",
+            "title": "Parsed Schedules"
+          },
+          "parsed_jobs": {
+            "type": "integer",
+            "title": "Parsed Jobs"
+          },
+          "parse_errors": {
+            "type": "integer",
+            "title": "Parse Errors"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/Warning"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "parsed_node_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Parsed Node Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_path",
+          "status",
+          "parsed_schedules",
+          "parsed_jobs",
+          "parse_errors"
+        ],
+        "title": "PerFileResult"
+      },
+      "SharedEntityPayload": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "source_files": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Files"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "label",
+          "source_files"
+        ],
+        "title": "SharedEntityPayload"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VersionResponse": {
+        "properties": {
+          "parser": {
+            "type": "string",
+            "title": "Parser"
+          },
+          "parser_version": {
+            "type": "string",
+            "title": "Parser Version"
+          },
+          "contract_version": {
+            "type": "string",
+            "title": "Contract Version"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "parser",
+          "parser_version",
+          "contract_version",
+          "version"
+        ],
+        "title": "VersionResponse"
+      },
+      "Warning": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "line": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line"
+          },
+          "column": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Column"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "detail"
+        ],
+        "title": "Warning"
+      }
+    }
+  }
+}

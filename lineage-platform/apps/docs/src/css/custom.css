@@ -1,0 +1,137 @@
+/* Carbon-aligned palette so screenshots from the frontend blend in. */
+:root {
+  --ifm-color-primary: #0f62fe;          /* Carbon blue 60 */
+  --ifm-color-primary-dark: #0050e6;
+  --ifm-color-primary-darker: #0043be;
+  --ifm-color-primary-darkest: #002d9c;
+  --ifm-color-primary-light: #4589ff;
+  --ifm-color-primary-lighter: #78a9ff;
+  --ifm-color-primary-lightest: #a6c8ff;
+
+  --ifm-code-font-size: 90%;
+  --ifm-font-family-base:
+    'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --ifm-font-family-monospace:
+    'IBM Plex Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+  --docusaurus-highlighted-code-line-bg: rgba(15, 98, 254, 0.12);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #78a9ff;
+  --ifm-color-primary-dark: #4589ff;
+  --ifm-color-primary-darker: #0f62fe;
+  --ifm-color-primary-darkest: #002d9c;
+  --ifm-color-primary-light: #a6c8ff;
+  --ifm-color-primary-lighter: #d0e2ff;
+  --ifm-color-primary-lightest: #edf5ff;
+  --docusaurus-highlighted-code-line-bg: rgba(120, 169, 255, 0.18);
+}
+
+/* Per-source-system colour chips reused across docs (matches frontend
+   cytoscape-config). */
+.source-tag {
+  display: inline-block;
+  padding: 0.05rem 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 0.45rem;
+  vertical-align: middle;
+}
+.source-tag--tableau  { background: #1f6fbf; color: #fff; }
+.source-tag--qlikview { background: #009844; color: #fff; }
+.source-tag--tws      { background: #d12771; color: #fff; }
+.source-tag--spark    { background: #e67e22; color: #fff; }
+.source-tag--shared   { background: #8a3ffc; color: #fff; }
+
+/* Tighten the giant default heading sizes so the page actually fits. */
+h1 { font-size: 2.15rem; }
+h2 { font-size: 1.55rem; margin-top: 2.25rem; }
+h3 { font-size: 1.2rem;  margin-top: 1.5rem;  }
+
+/* Parser simulator widget. */
+.parser-simulator {
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 6px;
+  margin: 1.25rem 0 2rem;
+  background: var(--ifm-background-surface-color);
+  overflow: hidden;
+}
+.simulator-header {
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  background: var(--ifm-color-emphasis-100);
+  font-size: 0.9rem;
+}
+.simulator-stats { margin-left: 0.7rem; color: var(--ifm-color-emphasis-700); }
+.simulator-stats .stat-chip { margin-right: 0.55rem; font-size: 0.8rem; }
+.simulator-stats .stat-chip em { font-style: normal; color: var(--ifm-color-emphasis-600); }
+.simulator-warnings {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  background: rgba(241, 194, 27, 0.07);
+}
+.simulator-warnings ul { margin: 0.4rem 0 0; padding-left: 1.2rem; }
+.simulator-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.4rem 0.6rem 0;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  background: var(--ifm-color-emphasis-100);
+}
+.simulator-tab {
+  border: 1px solid transparent;
+  border-bottom: 0;
+  background: transparent;
+  padding: 0.32rem 0.7rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: 4px 4px 0 0;
+  color: var(--ifm-color-emphasis-800);
+}
+.simulator-tab:hover { background: var(--ifm-color-emphasis-200); }
+.simulator-tab.active {
+  background: var(--ifm-background-surface-color);
+  border-color: var(--ifm-color-emphasis-300);
+  color: var(--ifm-color-primary);
+  font-weight: 600;
+}
+.simulator-body { padding: 0.85rem; }
+.simulator-body pre,
+.simulator-body .theme-code-block { max-height: 420px; overflow: auto; }
+
+.simulator-tokens {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  table-layout: fixed;
+}
+.simulator-tokens th,
+.simulator-tokens td {
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  text-align: left;
+  vertical-align: top;
+}
+.simulator-tokens th:first-child,
+.simulator-tokens td:first-child { width: 50px; text-align: right; }
+.simulator-tokens th:nth-child(2),
+.simulator-tokens td:nth-child(2) { width: 50px; text-align: right; }
+.simulator-tokens th:nth-child(3),
+.simulator-tokens td:nth-child(3) { width: 180px; }
+.simulator-tokens td code {
+  background: transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  max-width: 100%;
+}
+.simulator-error {
+  padding: 0.85rem;
+  border-radius: 4px;
+  background: rgba(218, 30, 40, 0.08);
+  color: var(--ifm-color-danger);
+  border: 1px solid rgba(218, 30, 40, 0.3);
+}

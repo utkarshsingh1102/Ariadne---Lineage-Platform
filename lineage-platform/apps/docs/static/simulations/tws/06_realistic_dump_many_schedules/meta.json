@@ -1,0 +1,30 @@
+{
+  "parser": "tws",
+  "fixture": "06_realistic_dump_many_schedules.txt",
+  "parse_errors": [],
+  "warnings": [
+    {
+      "type": "unresolved_resource",
+      "detail": "Job WS_PROD#NIGHTLY_INFRA_CHECK.CHECK_DB_HEALTH NEEDS resource DB_HEALTH_CHECK_SLOT (not declared in this file)"
+    },
+    {
+      "type": "unresolved_resource",
+      "detail": "Job WS_PROD#DAILY_SALES_LOAD.LOAD_ORDERS_TO_DW NEEDS resource DW_LOAD_SLOT (not declared in this file)"
+    },
+    {
+      "type": "unresolved_resource",
+      "detail": "Job WS_PROD#FINANCE_RECON.RECON_GL_VS_SALES NEEDS resource RECON_LOCK (not declared in this file)"
+    },
+    {
+      "type": "unresolved_dependency",
+      "detail": "Schedule FINANCE_RECON FOLLOWS WS_FINANCE#GL_CLOSE (target not in batch)"
+    }
+  ],
+  "stats": {
+    "schedules": 3,
+    "job_streams": 3,
+    "jobs": 10,
+    "follows_edges": 7,
+    "recovery_edges": 0
+  }
+}

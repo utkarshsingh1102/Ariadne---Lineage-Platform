@@ -1,0 +1,30 @@
+[
+  {
+    "parser": "tws",
+    "fixtures": [
+      "01_single_schedule_single_job",
+      "06_realistic_dump_many_schedules"
+    ]
+  },
+  {
+    "parser": "tableau",
+    "fixtures": [
+      "01_simple_single_datasource",
+      "02_calculated_fields"
+    ]
+  },
+  {
+    "parser": "qlikview",
+    "fixtures": [
+      "01_simple_sql_load",
+      "03_left_join"
+    ]
+  },
+  {
+    "parser": "spark",
+    "fixtures": [
+      "01_simple_read_write",
+      "02_join_and_select"
+    ]
+  }
+]

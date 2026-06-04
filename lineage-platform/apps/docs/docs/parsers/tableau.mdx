@@ -1,0 +1,51 @@
+---
+title: Tableau parser
+sidebar_label: Tableau parser
+---
+
+import ParserSimulator from '@site/src/components/ParserSimulator';
+
+# Tableau parser
+
+`.twb` / `.twbx` via lxml — workbooks, datasources, worksheets, dashboards,
+custom-SQL CTE column lineage.
+
+## Simulator — simple single datasource
+
+A minimal workbook with one datasource and one worksheet. Walk the tabs
+to see the raw `.twb` XML, the elided lxml DOM tree, the assembled IR,
+the Cypher batch and the resulting Cytoscape graph.
+
+<ParserSimulator parser="tableau" fixture="01_simple_single_datasource" />
+
+## Simulator — calculated fields
+
+The same shape but with calculated-field expressions feeding worksheet
+marks. Watch how the IR captures `derives_from` edges between attributes.
+
+<ParserSimulator parser="tableau" fixture="02_calculated_fields" />
+
+## Pipeline
+
+1. **Container** — `.twbx` is a ZIP holding a `.twb` and any extracts.
+   `parser/workbook.py` unzips into a temp dir.
+2. **DOM** — `.twb` is XML; lxml parses it into a DOM the `extractor/`
+   package walks.
+3. **Extract** — `<datasource>` blocks yield connections, tables, fields,
+   joins, calculated-field expressions. `<worksheet>` and `<dashboard>`
+   bind data fields to charts via field-usage records.
+4. **Custom-SQL** — calculated-field expressions and embedded `<query>`
+   blocks route through sqlglot to produce `CTEColumnIR` rows.
+5. **IR** — `models/domain.py` typed dataclasses: `WorkbookIR`,
+   `DatasourceIR`, `WorksheetIR`, `DashboardIR`, `ParameterIR`,
+   `CTEColumnIR`.
+6. **Write** — `graph/writer.py` emits `:Workbook`, `:Datasource`,
+   `:Worksheet`, `:Dashboard`, `:Attribute`, `:Table`, `:Connection`,
+   `:Parameter` plus the `USES_DATASOURCE`, `HAS_ATTRIBUTE`, `READS_TABLE`,
+   `DERIVES_FROM` edges.
+
+## See also
+
+- [API reference](/reference/openapi/tableau) — every endpoint.
+- [Tableau tests](/tests/tableau) — fixture catalogue.
+- [Pipeline architecture](/parsers/architecture) — shared pattern.

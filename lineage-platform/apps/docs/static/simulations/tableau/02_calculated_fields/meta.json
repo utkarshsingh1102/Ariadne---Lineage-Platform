@@ -1,0 +1,10 @@
+{
+  "parser": "tableau",
+  "fixture": "02_calculated_fields.twb",
+  "stats": {
+    "datasources": 1,
+    "worksheets": 0,
+    "dashboards": 0,
+    "attributes": 8
+  }
+}

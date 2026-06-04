@@ -1,0 +1,131 @@
+{
+  "nodes": [
+    {
+      "data": {
+        "id": "5239e16144ba43c2",
+        "label": "01_simple_single_datasource",
+        "labels": [
+          "Workbook"
+        ],
+        "source_system": "tableau",
+        "properties": {
+          "file_path": "/data/inputs/01_simple_single_datasource.twb"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "1be60cb6b353cef8",
+        "label": "customer_ds",
+        "labels": [
+          "Datasource"
+        ],
+        "source_system": "tableau",
+        "properties": {
+          "is_federated": false,
+          "has_extract": false
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "67cbd5357b628ddf",
+        "label": "CustomerID",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "tableau",
+        "properties": {
+          "role": "dimension",
+          "datatype": "integer"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "9ba6a924731171d7",
+        "label": "CustomerName",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "tableau",
+        "properties": {
+          "role": "dimension",
+          "datatype": "string"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "38971a7d908af127",
+        "label": "Region",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "tableau",
+        "properties": {
+          "role": "dimension",
+          "datatype": "string"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "794cbf90a887eba4",
+        "label": "Customers by Region",
+        "labels": [
+          "Worksheet"
+        ],
+        "source_system": "tableau",
+        "properties": {}
+      }
+    }
+  ],
+  "edges": [
+    {
+      "data": {
+        "id": "5239e16144ba43c2-USES_DATASOURCE-1be60cb6b353cef8",
+        "source": "5239e16144ba43c2",
+        "target": "1be60cb6b353cef8",
+        "label": "USES_DATASOURCE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "1be60cb6b353cef8-HAS_ATTRIBUTE-67cbd5357b628ddf",
+        "source": "1be60cb6b353cef8",
+        "target": "67cbd5357b628ddf",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "1be60cb6b353cef8-HAS_ATTRIBUTE-9ba6a924731171d7",
+        "source": "1be60cb6b353cef8",
+        "target": "9ba6a924731171d7",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "1be60cb6b353cef8-HAS_ATTRIBUTE-38971a7d908af127",
+        "source": "1be60cb6b353cef8",
+        "target": "38971a7d908af127",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "5239e16144ba43c2-CONTAINS_WORKSHEET-794cbf90a887eba4",
+        "source": "5239e16144ba43c2",
+        "target": "794cbf90a887eba4",
+        "label": "CONTAINS_WORKSHEET",
+        "properties": {}
+      }
+    }
+  ]
+}

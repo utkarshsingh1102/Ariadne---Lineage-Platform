@@ -1,0 +1,27 @@
+// ======================================================
+// Fixture 03 — JOINs (explicit and implicit target forms)
+// Both forms must be detected. Currently the implicit form
+// (no parentheses) is silently dropped — see REVIEW.md §4.4.
+// ======================================================
+
+ODBC CONNECT TO 'TERADATA_PROD';
+
+Customer:
+LOAD CustomerID, CustomerName, Region;
+SQL SELECT CustomerID, CustomerName, Region
+FROM PROD.SALES.CUSTOMER;
+
+Orders:
+LOAD OrderID, CustomerID, Amount;
+SQL SELECT OrderID, CustomerID, Amount
+FROM PROD.SALES.ORDERS;
+
+// Implicit target — JOINs onto Orders (the most recent table)
+LEFT JOIN LOAD
+    CustomerID, CustomerName, Region
+RESIDENT Customer;
+
+// Explicit target form
+INNER JOIN (Orders) LOAD
+    CustomerID, OrderDate
+RESIDENT Customer;

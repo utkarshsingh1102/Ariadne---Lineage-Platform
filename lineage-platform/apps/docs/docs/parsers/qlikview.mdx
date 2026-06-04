@@ -1,0 +1,59 @@
+---
+title: QlikView parser
+sidebar_label: QlikView parser
+---
+
+import ParserSimulator from '@site/src/components/ParserSimulator';
+
+# QlikView parser
+
+`.qvs` / `.qvw` / `.qvf` via ANTLR4 + a script preprocessor —
+apps, datasets, attributes, key-constraint inference, embedded-SQL lineage.
+
+## Simulator — simple SQL load
+
+A bare-minimum `.qvs` script: one `LOAD … SQL SELECT` statement. Watch
+the tokens, IR, Cypher and graph.
+
+<ParserSimulator parser="qlikview" fixture="01_simple_sql_load" />
+
+## Simulator — left join
+
+Two table loads with a `LEFT JOIN` between them — exercises the
+embedded-SQL path and the JOIN-key→FK candidate signal.
+
+<ParserSimulator parser="qlikview" fixture="03_left_join" />
+
+## Pipeline
+
+1. **Container** — `.qvs` is plain text. `.qvw` is OLE compound (header +
+   script). `.qvf` is a Qlik Sense SQLite container.
+2. **Pre-process** — `preprocessor.py` handles `$(include=…)` with
+   cycle-guard, `SET`/`LET` variables, `$(var)` expansion (5-pass cap),
+   `SUB`/`CALL` inlining, control-flow unrolling (FOR / FOR EACH / IF).
+3. **Lex + parse** — ANTLR4 from `grammar/QlikViewLexer.g4` and
+   `grammar/QlikViewParser.g4`. The visitor recovers softly on errors via
+   `visitor/error_listener.py`.
+4. **Embedded SQL** — `SQL SELECT` bodies route through sqlglot with
+   dialect detection to extract source tables + column lineage.
+5. **IR** — `models.py` carries v0.1 (`QlikViewApp`, `LoadStatement`,
+   `Connection`, `Field`, `Join`, `Variable`, `Subroutine`) and v0.2
+   frozen records (`DataPlatform`, `DataConnection`, `PhysicalSource`,
+   `Dataset`, `Attribute`, `KeyConstraint`, `LineageEdge`, `Diagnostic`).
+6. **Secret scrub** — `secrets.py` masks `PWD=…`, AWS keys, bearer tokens
+   before any text leaves memory. `fingerprint(salt+secret)` retained for
+   change detection.
+7. **Constraint inference** — `constraints.py` reconciles signals:
+   QVD-header hints (unique candidates), JOIN keys → FK candidates,
+   auto-association, `$Syn` synthetic-key expansion, naming heuristics.
+   Each emits `confidence` so conflicts stay as alternatives.
+8. **Write** — `graph/writer.py` emits both v0.1 (`:QlikScript`,
+   `:QlikTable`, `:Connection`, `:Attribute`) and v0.2 (`:DataPlatform`,
+   `:DataConnection`, `:PhysicalSource`, `:Dataset`, `:KeyConstraint`)
+   labels with full SHA-256 ids.
+
+## See also
+
+- [API reference](/reference/openapi/qlikview) — every endpoint.
+- [QlikView tests](/tests/qlikview) — fixture catalogue + pass/xfail breakdown.
+- [Pipeline architecture](/parsers/architecture) — shared pattern.

@@ -40,7 +40,7 @@ lineage-platform/
 - [x] Phase 3 — qlikview-parser wired in
 - [x] Phase 4 — spark-parser wired in
 - [x] Phase 5 — gateway + frontend (Next.js + Carbon Design System, cytoscape.js graph viz)
-- [ ] Phase 6 — documentation site (separate port)
+- [x] Phase 6 — documentation site (separate port): Docusaurus 3 on `:3002` under [`apps/docs`](apps/docs). 53 pages, auto-generated API catalogue, parser simulator widgets, 8 Mermaid diagrams. Run `docker compose up -d --build docs` and visit `http://localhost:3002`.
 - [ ] Future — NLP service (sketch only in plan)
 
 ## Frontend overview

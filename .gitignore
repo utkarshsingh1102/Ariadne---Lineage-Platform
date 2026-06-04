@@ -2,6 +2,13 @@
 # User-specified ignores
 # ---------------------------------------------------------------------------
 docs/
+# Phase 6 exception — the Docusaurus app under lineage-platform/apps/docs/
+# IS tracked. The top-level ./docs/ stays excluded. node_modules/ and
+# build/ matched elsewhere in this file still apply; .docusaurus/ is a
+# dev-time cache that should not be committed.
+!lineage-platform/apps/docs/
+!lineage-platform/apps/docs/**
+lineage-platform/apps/docs/.docusaurus/
 frontend-test/
 qlickview-parser/
 spark-improvement/

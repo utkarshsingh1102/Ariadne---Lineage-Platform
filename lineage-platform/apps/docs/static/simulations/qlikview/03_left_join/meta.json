@@ -1,0 +1,11 @@
+{
+  "parser": "qlikview",
+  "fixture": "03_left_join.qvs",
+  "stats": {
+    "loads": 2,
+    "connections": 1,
+    "variables": 0,
+    "subroutines": 0,
+    "fields": 6
+  }
+}

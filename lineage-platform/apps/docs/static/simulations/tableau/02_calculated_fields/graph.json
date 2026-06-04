@@ -1,0 +1,226 @@
+{
+  "nodes": [
+    {
+      "data": {
+        "id": "ed068dfe16cec3e6",
+        "label": "02_calculated_fields",
+        "labels": [
+          "Workbook"
+        ],
+        "source_system": "tableau",
+        "properties": {
+          "file_path": "/data/inputs/02_calculated_fields.twb"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "37974d9ce7044adc",
+        "label": "orders_ds",
+        "labels": [
+          "Datasource"
+        ],
+        "source_system": "tableau",
+        "properties": {
+          "is_federated": false,
+          "has_extract": false
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "987b19bacb908780",
+        "label": "OrderID",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "tableau",
+        "properties": {
+          "role": "dimension",
+          "datatype": "integer"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "de361246c14eeebe",
+        "label": "CustomerID",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "tableau",
+        "properties": {
+          "role": "dimension",
+          "datatype": "integer"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "5e35b1c4ab35869f",
+        "label": "Amount",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "tableau",
+        "properties": {
+          "role": "measure",
+          "datatype": "real"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "33e0105f05a2bb46",
+        "label": "OrderDate",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "tableau",
+        "properties": {
+          "role": "dimension",
+          "datatype": "date"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "13ecebbce3b8fdb1",
+        "label": "AmountWithTax",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "tableau",
+        "properties": {
+          "role": "measure",
+          "datatype": "real"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "9e953b0565036c26",
+        "label": "Profit",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "tableau",
+        "properties": {
+          "role": "measure",
+          "datatype": "real"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "853e03421293169e",
+        "label": "TotalPerCustomer",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "tableau",
+        "properties": {
+          "role": "measure",
+          "datatype": "real"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "3ad8e3f31d442fc1",
+        "label": "OrderTier",
+        "labels": [
+          "Attribute"
+        ],
+        "source_system": "tableau",
+        "properties": {
+          "role": "dimension",
+          "datatype": "string"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "data": {
+        "id": "ed068dfe16cec3e6-USES_DATASOURCE-37974d9ce7044adc",
+        "source": "ed068dfe16cec3e6",
+        "target": "37974d9ce7044adc",
+        "label": "USES_DATASOURCE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "37974d9ce7044adc-HAS_ATTRIBUTE-987b19bacb908780",
+        "source": "37974d9ce7044adc",
+        "target": "987b19bacb908780",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "37974d9ce7044adc-HAS_ATTRIBUTE-de361246c14eeebe",
+        "source": "37974d9ce7044adc",
+        "target": "de361246c14eeebe",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "37974d9ce7044adc-HAS_ATTRIBUTE-5e35b1c4ab35869f",
+        "source": "37974d9ce7044adc",
+        "target": "5e35b1c4ab35869f",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "37974d9ce7044adc-HAS_ATTRIBUTE-33e0105f05a2bb46",
+        "source": "37974d9ce7044adc",
+        "target": "33e0105f05a2bb46",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "37974d9ce7044adc-HAS_ATTRIBUTE-13ecebbce3b8fdb1",
+        "source": "37974d9ce7044adc",
+        "target": "13ecebbce3b8fdb1",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "37974d9ce7044adc-HAS_ATTRIBUTE-9e953b0565036c26",
+        "source": "37974d9ce7044adc",
+        "target": "9e953b0565036c26",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "37974d9ce7044adc-HAS_ATTRIBUTE-853e03421293169e",
+        "source": "37974d9ce7044adc",
+        "target": "853e03421293169e",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "37974d9ce7044adc-HAS_ATTRIBUTE-3ad8e3f31d442fc1",
+        "source": "37974d9ce7044adc",
+        "target": "3ad8e3f31d442fc1",
+        "label": "HAS_ATTRIBUTE",
+        "properties": {}
+      }
+    }
+  ]
+}

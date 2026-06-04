@@ -1,0 +1,883 @@
+{
+  "workstations": [],
+  "calendars": [],
+  "resources": [],
+  "prompts": [],
+  "event_rules": [],
+  "schedules": [
+    {
+      "workstation": "WS_PROD",
+      "scheduler": "MASTER",
+      "name": "NIGHTLY_INFRA_CHECK",
+      "id": "7b2e99e64b099785",
+      "run_cycle": "EVERY_WEEKDAY",
+      "cron_equivalent": "0 2 * * 1-5",
+      "valid_from": "01/01/2025",
+      "valid_to": null,
+      "start_time": "02:00",
+      "end_time": "05:00",
+      "priority": 80,
+      "carry_forward": true,
+      "source_file": "",
+      "raw_definition": "",
+      "deadline": null,
+      "on_until": null,
+      "every": null,
+      "limit": null,
+      "run_cycles": [
+        {
+          "name": "EVERY_WEEKDAY",
+          "raw_phrase": "EVERY_WEEKDAY",
+          "calendar_name": null,
+          "rrule": null,
+          "is_except": false
+        }
+      ],
+      "days_of_week": [
+        "MON",
+        "TUE",
+        "WED",
+        "THU",
+        "FRI"
+      ],
+      "days_of_month": [],
+      "frequency": "weekly",
+      "schedule_follows": [],
+      "jobs": [
+        {
+          "schedule_id": "7b2e99e64b099785",
+          "name": "CHECK_DISK",
+          "id": "8d9ffc4c8c264e40",
+          "script_path": "/apps/ops/check_disk.sh",
+          "script_args": null,
+          "script_type": "shell",
+          "stream_logon": "ops_user",
+          "recovery": "STOP",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 0,
+          "follows": [],
+          "needs": [],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "NIGHTLY_INFRA_CHECK",
+          "follows_refs": [],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        },
+        {
+          "schedule_id": "7b2e99e64b099785",
+          "name": "CHECK_NETWORK",
+          "id": "4c0acb03fcf872a2",
+          "script_path": "/apps/ops/check_network.sh",
+          "script_args": null,
+          "script_type": "shell",
+          "stream_logon": "ops_user",
+          "recovery": "STOP",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 1,
+          "follows": [
+            "CHECK_DISK"
+          ],
+          "needs": [],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "NIGHTLY_INFRA_CHECK",
+          "follows_refs": [
+            {
+              "target_qualified": "CHECK_DISK",
+              "scope": "internal",
+              "condition": null,
+              "target_workstation": "",
+              "target_stream": "",
+              "target_job": "CHECK_DISK"
+            }
+          ],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        },
+        {
+          "schedule_id": "7b2e99e64b099785",
+          "name": "CHECK_DB_HEALTH",
+          "id": "03ff44bf3d615918",
+          "script_path": "/apps/ops/check_db.sh",
+          "script_args": "prod",
+          "script_type": "shell",
+          "stream_logon": "ops_user",
+          "recovery": "STOP",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 2,
+          "follows": [
+            "CHECK_NETWORK"
+          ],
+          "needs": [
+            [
+              "DB_HEALTH_CHECK_SLOT",
+              1
+            ]
+          ],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "NIGHTLY_INFRA_CHECK",
+          "follows_refs": [
+            {
+              "target_qualified": "CHECK_NETWORK",
+              "scope": "internal",
+              "condition": null,
+              "target_workstation": "",
+              "target_stream": "",
+              "target_job": "CHECK_NETWORK"
+            }
+          ],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        }
+      ]
+    },
+    {
+      "workstation": "WS_PROD",
+      "scheduler": "MASTER",
+      "name": "DAILY_SALES_LOAD",
+      "id": "a6de3f8947629100",
+      "run_cycle": "EVERY_WEEKDAY",
+      "cron_equivalent": "30 5 * * 1-5",
+      "valid_from": "01/01/2025",
+      "valid_to": null,
+      "start_time": "05:30",
+      "end_time": "09:00",
+      "priority": 50,
+      "carry_forward": true,
+      "source_file": "",
+      "raw_definition": "",
+      "deadline": null,
+      "on_until": null,
+      "every": null,
+      "limit": null,
+      "run_cycles": [
+        {
+          "name": "EVERY_WEEKDAY",
+          "raw_phrase": "EVERY_WEEKDAY",
+          "calendar_name": null,
+          "rrule": null,
+          "is_except": false
+        }
+      ],
+      "days_of_week": [
+        "MON",
+        "TUE",
+        "WED",
+        "THU",
+        "FRI"
+      ],
+      "days_of_month": [],
+      "frequency": "weekly",
+      "schedule_follows": [
+        {
+          "target_schedule": "NIGHTLY_INFRA_CHECK",
+          "target_workstation": "WS_PROD",
+          "wildcard": true
+        }
+      ],
+      "jobs": [
+        {
+          "schedule_id": "a6de3f8947629100",
+          "name": "WAIT_SALES_FEED",
+          "id": "19d0db7562828d40",
+          "script_path": "/apps/feeds/await.sh",
+          "script_args": null,
+          "script_type": "shell",
+          "stream_logon": "tws_user",
+          "recovery": "STOP",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 0,
+          "follows": [],
+          "needs": [],
+          "opens": [
+            "/data/feeds/sales_YYYYMMDD.csv"
+          ],
+          "workstation": "WS_PROD",
+          "stream": "DAILY_SALES_LOAD",
+          "follows_refs": [],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        },
+        {
+          "schedule_id": "a6de3f8947629100",
+          "name": "EXTRACT_ORDERS",
+          "id": "5e167c83dc638c55",
+          "script_path": "/apps/abinitio/run.sh",
+          "script_args": "extract_orders.mp",
+          "script_type": "shell",
+          "stream_logon": "tws_user",
+          "recovery": "STOP",
+          "description": "Extract orders from source",
+          "priority": null,
+          "order_in_schedule": 1,
+          "follows": [
+            "WAIT_SALES_FEED"
+          ],
+          "needs": [],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "DAILY_SALES_LOAD",
+          "follows_refs": [
+            {
+              "target_qualified": "WAIT_SALES_FEED",
+              "scope": "internal",
+              "condition": null,
+              "target_workstation": "",
+              "target_stream": "",
+              "target_job": "WAIT_SALES_FEED"
+            }
+          ],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        },
+        {
+          "schedule_id": "a6de3f8947629100",
+          "name": "TRANSFORM_ORDERS",
+          "id": "9fe2a2d1406bc0fb",
+          "script_path": "/apps/abinitio/run.sh",
+          "script_args": "transform_orders.mp",
+          "script_type": "shell",
+          "stream_logon": "tws_user",
+          "recovery": "RERUN",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 2,
+          "follows": [
+            "EXTRACT_ORDERS"
+          ],
+          "needs": [],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "DAILY_SALES_LOAD",
+          "follows_refs": [
+            {
+              "target_qualified": "EXTRACT_ORDERS",
+              "scope": "internal",
+              "condition": null,
+              "target_workstation": "",
+              "target_stream": "",
+              "target_job": "EXTRACT_ORDERS"
+            }
+          ],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        },
+        {
+          "schedule_id": "a6de3f8947629100",
+          "name": "LOAD_ORDERS_TO_DW",
+          "id": "352ee6c7795483ad",
+          "script_path": "/apps/bteq/load_orders.bteq",
+          "script_args": null,
+          "script_type": "bteq",
+          "stream_logon": "tws_user",
+          "recovery": "CONTINUE",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 3,
+          "follows": [
+            "TRANSFORM_ORDERS"
+          ],
+          "needs": [
+            [
+              "DW_LOAD_SLOT",
+              1
+            ]
+          ],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "DAILY_SALES_LOAD",
+          "follows_refs": [
+            {
+              "target_qualified": "TRANSFORM_ORDERS",
+              "scope": "internal",
+              "condition": null,
+              "target_workstation": "",
+              "target_stream": "",
+              "target_job": "TRANSFORM_ORDERS"
+            }
+          ],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        },
+        {
+          "schedule_id": "a6de3f8947629100",
+          "name": "REFRESH_TABLEAU_EXTRACT",
+          "id": "faec5169c5bcd37a",
+          "script_path": "/apps/tableau/refresh.sh",
+          "script_args": "sales_dashboard",
+          "script_type": "shell",
+          "stream_logon": "tableau_svc",
+          "recovery": "CONTINUE",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 4,
+          "follows": [
+            "LOAD_ORDERS_TO_DW"
+          ],
+          "needs": [],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "DAILY_SALES_LOAD",
+          "follows_refs": [
+            {
+              "target_qualified": "LOAD_ORDERS_TO_DW",
+              "scope": "internal",
+              "condition": null,
+              "target_workstation": "",
+              "target_stream": "",
+              "target_job": "LOAD_ORDERS_TO_DW"
+            }
+          ],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        }
+      ]
+    },
+    {
+      "workstation": "WS_PROD",
+      "scheduler": "MASTER",
+      "name": "FINANCE_RECON",
+      "id": "b3fbdb8bcad5eade",
+      "run_cycle": "EVERY_WEEKDAY",
+      "cron_equivalent": "0 7 * * 1-5",
+      "valid_from": "01/01/2025",
+      "valid_to": null,
+      "start_time": "07:00",
+      "end_time": null,
+      "priority": null,
+      "carry_forward": false,
+      "source_file": "",
+      "raw_definition": "",
+      "deadline": null,
+      "on_until": null,
+      "every": null,
+      "limit": null,
+      "run_cycles": [
+        {
+          "name": "EVERY_WEEKDAY",
+          "raw_phrase": "EVERY_WEEKDAY",
+          "calendar_name": null,
+          "rrule": null,
+          "is_except": false
+        }
+      ],
+      "days_of_week": [
+        "MON",
+        "TUE",
+        "WED",
+        "THU",
+        "FRI"
+      ],
+      "days_of_month": [],
+      "frequency": "weekly",
+      "schedule_follows": [
+        {
+          "target_schedule": "DAILY_SALES_LOAD",
+          "target_workstation": "WS_PROD",
+          "wildcard": true
+        },
+        {
+          "target_schedule": "GL_CLOSE",
+          "target_workstation": "WS_FINANCE",
+          "wildcard": true
+        }
+      ],
+      "jobs": [
+        {
+          "schedule_id": "b3fbdb8bcad5eade",
+          "name": "RECON_GL_VS_SALES",
+          "id": "4f9512e7e05e85b5",
+          "script_path": "/apps/finance/recon.sh",
+          "script_args": null,
+          "script_type": "shell",
+          "stream_logon": "finance_user",
+          "recovery": "STOP",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 0,
+          "follows": [],
+          "needs": [
+            [
+              "RECON_LOCK",
+              1
+            ]
+          ],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "FINANCE_RECON",
+          "follows_refs": [],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        },
+        {
+          "schedule_id": "b3fbdb8bcad5eade",
+          "name": "EMAIL_RECON_REPORT",
+          "id": "d36a25631ab2edd1",
+          "script_path": "/apps/finance/email_report.sh",
+          "script_args": "recon_summary.html",
+          "script_type": "shell",
+          "stream_logon": "finance_user",
+          "recovery": "CONTINUE",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 1,
+          "follows": [
+            "RECON_GL_VS_SALES"
+          ],
+          "needs": [],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "FINANCE_RECON",
+          "follows_refs": [
+            {
+              "target_qualified": "RECON_GL_VS_SALES",
+              "scope": "internal",
+              "condition": null,
+              "target_workstation": "",
+              "target_stream": "",
+              "target_job": "RECON_GL_VS_SALES"
+            }
+          ],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        }
+      ]
+    }
+  ],
+  "job_streams": [
+    {
+      "workstation": "WS_PROD",
+      "name": "NIGHTLY_INFRA_CHECK",
+      "description": null,
+      "run_cycles": [
+        {
+          "name": "EVERY_WEEKDAY",
+          "raw_phrase": "EVERY_WEEKDAY",
+          "calendar_name": null,
+          "rrule": null,
+          "is_except": false
+        }
+      ],
+      "start_time": "02:00",
+      "end_time": "05:00",
+      "deadline": null,
+      "priority": 80,
+      "limit": null,
+      "carry_forward": true,
+      "valid_from": "01/01/2025",
+      "valid_to": null,
+      "every": null,
+      "on_until": null,
+      "stream_needs": [],
+      "jobs": [
+        {
+          "schedule_id": "7b2e99e64b099785",
+          "name": "CHECK_DISK",
+          "id": "8d9ffc4c8c264e40",
+          "script_path": "/apps/ops/check_disk.sh",
+          "script_args": null,
+          "script_type": "shell",
+          "stream_logon": "ops_user",
+          "recovery": "STOP",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 0,
+          "follows": [],
+          "needs": [],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "NIGHTLY_INFRA_CHECK",
+          "follows_refs": [],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        },
+        {
+          "schedule_id": "7b2e99e64b099785",
+          "name": "CHECK_NETWORK",
+          "id": "4c0acb03fcf872a2",
+          "script_path": "/apps/ops/check_network.sh",
+          "script_args": null,
+          "script_type": "shell",
+          "stream_logon": "ops_user",
+          "recovery": "STOP",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 1,
+          "follows": [
+            "CHECK_DISK"
+          ],
+          "needs": [],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "NIGHTLY_INFRA_CHECK",
+          "follows_refs": [
+            {
+              "target_qualified": "CHECK_DISK",
+              "scope": "internal",
+              "condition": null,
+              "target_workstation": "",
+              "target_stream": "",
+              "target_job": "CHECK_DISK"
+            }
+          ],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        },
+        {
+          "schedule_id": "7b2e99e64b099785",
+          "name": "CHECK_DB_HEALTH",
+          "id": "03ff44bf3d615918",
+          "script_path": "/apps/ops/check_db.sh",
+          "script_args": "prod",
+          "script_type": "shell",
+          "stream_logon": "ops_user",
+          "recovery": "STOP",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 2,
+          "follows": [
+            "CHECK_NETWORK"
+          ],
+          "needs": [
+            [
+              "DB_HEALTH_CHECK_SLOT",
+              1
+            ]
+          ],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "NIGHTLY_INFRA_CHECK",
+          "follows_refs": [
+            {
+              "target_qualified": "CHECK_NETWORK",
+              "scope": "internal",
+              "condition": null,
+              "target_workstation": "",
+              "target_stream": "",
+              "target_job": "CHECK_NETWORK"
+            }
+          ],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        }
+      ],
+      "id": "c580a628f6613a0b"
+    },
+    {
+      "workstation": "WS_PROD",
+      "name": "DAILY_SALES_LOAD",
+      "description": null,
+      "run_cycles": [
+        {
+          "name": "EVERY_WEEKDAY",
+          "raw_phrase": "EVERY_WEEKDAY",
+          "calendar_name": null,
+          "rrule": null,
+          "is_except": false
+        }
+      ],
+      "start_time": "05:30",
+      "end_time": "09:00",
+      "deadline": null,
+      "priority": 50,
+      "limit": null,
+      "carry_forward": true,
+      "valid_from": "01/01/2025",
+      "valid_to": null,
+      "every": null,
+      "on_until": null,
+      "stream_needs": [],
+      "jobs": [
+        {
+          "schedule_id": "a6de3f8947629100",
+          "name": "WAIT_SALES_FEED",
+          "id": "19d0db7562828d40",
+          "script_path": "/apps/feeds/await.sh",
+          "script_args": null,
+          "script_type": "shell",
+          "stream_logon": "tws_user",
+          "recovery": "STOP",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 0,
+          "follows": [],
+          "needs": [],
+          "opens": [
+            "/data/feeds/sales_YYYYMMDD.csv"
+          ],
+          "workstation": "WS_PROD",
+          "stream": "DAILY_SALES_LOAD",
+          "follows_refs": [],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        },
+        {
+          "schedule_id": "a6de3f8947629100",
+          "name": "EXTRACT_ORDERS",
+          "id": "5e167c83dc638c55",
+          "script_path": "/apps/abinitio/run.sh",
+          "script_args": "extract_orders.mp",
+          "script_type": "shell",
+          "stream_logon": "tws_user",
+          "recovery": "STOP",
+          "description": "Extract orders from source",
+          "priority": null,
+          "order_in_schedule": 1,
+          "follows": [
+            "WAIT_SALES_FEED"
+          ],
+          "needs": [],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "DAILY_SALES_LOAD",
+          "follows_refs": [
+            {
+              "target_qualified": "WAIT_SALES_FEED",
+              "scope": "internal",
+              "condition": null,
+              "target_workstation": "",
+              "target_stream": "",
+              "target_job": "WAIT_SALES_FEED"
+            }
+          ],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        },
+        {
+          "schedule_id": "a6de3f8947629100",
+          "name": "TRANSFORM_ORDERS",
+          "id": "9fe2a2d1406bc0fb",
+          "script_path": "/apps/abinitio/run.sh",
+          "script_args": "transform_orders.mp",
+          "script_type": "shell",
+          "stream_logon": "tws_user",
+          "recovery": "RERUN",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 2,
+          "follows": [
+            "EXTRACT_ORDERS"
+          ],
+          "needs": [],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "DAILY_SALES_LOAD",
+          "follows_refs": [
+            {
+              "target_qualified": "EXTRACT_ORDERS",
+              "scope": "internal",
+              "condition": null,
+              "target_workstation": "",
+              "target_stream": "",
+              "target_job": "EXTRACT_ORDERS"
+            }
+          ],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        },
+        {
+          "schedule_id": "a6de3f8947629100",
+          "name": "LOAD_ORDERS_TO_DW",
+          "id": "352ee6c7795483ad",
+          "script_path": "/apps/bteq/load_orders.bteq",
+          "script_args": null,
+          "script_type": "bteq",
+          "stream_logon": "tws_user",
+          "recovery": "CONTINUE",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 3,
+          "follows": [
+            "TRANSFORM_ORDERS"
+          ],
+          "needs": [
+            [
+              "DW_LOAD_SLOT",
+              1
+            ]
+          ],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "DAILY_SALES_LOAD",
+          "follows_refs": [
+            {
+              "target_qualified": "TRANSFORM_ORDERS",
+              "scope": "internal",
+              "condition": null,
+              "target_workstation": "",
+              "target_stream": "",
+              "target_job": "TRANSFORM_ORDERS"
+            }
+          ],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        },
+        {
+          "schedule_id": "a6de3f8947629100",
+          "name": "REFRESH_TABLEAU_EXTRACT",
+          "id": "faec5169c5bcd37a",
+          "script_path": "/apps/tableau/refresh.sh",
+          "script_args": "sales_dashboard",
+          "script_type": "shell",
+          "stream_logon": "tableau_svc",
+          "recovery": "CONTINUE",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 4,
+          "follows": [
+            "LOAD_ORDERS_TO_DW"
+          ],
+          "needs": [],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "DAILY_SALES_LOAD",
+          "follows_refs": [
+            {
+              "target_qualified": "LOAD_ORDERS_TO_DW",
+              "scope": "internal",
+              "condition": null,
+              "target_workstation": "",
+              "target_stream": "",
+              "target_job": "LOAD_ORDERS_TO_DW"
+            }
+          ],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        }
+      ],
+      "id": "2b6b017e7edcec18"
+    },
+    {
+      "workstation": "WS_PROD",
+      "name": "FINANCE_RECON",
+      "description": null,
+      "run_cycles": [
+        {
+          "name": "EVERY_WEEKDAY",
+          "raw_phrase": "EVERY_WEEKDAY",
+          "calendar_name": null,
+          "rrule": null,
+          "is_except": false
+        }
+      ],
+      "start_time": "07:00",
+      "end_time": null,
+      "deadline": null,
+      "priority": null,
+      "limit": null,
+      "carry_forward": false,
+      "valid_from": "01/01/2025",
+      "valid_to": null,
+      "every": null,
+      "on_until": null,
+      "stream_needs": [],
+      "jobs": [
+        {
+          "schedule_id": "b3fbdb8bcad5eade",
+          "name": "RECON_GL_VS_SALES",
+          "id": "4f9512e7e05e85b5",
+          "script_path": "/apps/finance/recon.sh",
+          "script_args": null,
+          "script_type": "shell",
+          "stream_logon": "finance_user",
+          "recovery": "STOP",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 0,
+          "follows": [],
+          "needs": [
+            [
+              "RECON_LOCK",
+              1
+            ]
+          ],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "FINANCE_RECON",
+          "follows_refs": [],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        },
+        {
+          "schedule_id": "b3fbdb8bcad5eade",
+          "name": "EMAIL_RECON_REPORT",
+          "id": "d36a25631ab2edd1",
+          "script_path": "/apps/finance/email_report.sh",
+          "script_args": "recon_summary.html",
+          "script_type": "shell",
+          "stream_logon": "finance_user",
+          "recovery": "CONTINUE",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 1,
+          "follows": [
+            "RECON_GL_VS_SALES"
+          ],
+          "needs": [],
+          "opens": [],
+          "workstation": "WS_PROD",
+          "stream": "FINANCE_RECON",
+          "follows_refs": [
+            {
+              "target_qualified": "RECON_GL_VS_SALES",
+              "scope": "internal",
+              "condition": null,
+              "target_workstation": "",
+              "target_stream": "",
+              "target_job": "RECON_GL_VS_SALES"
+            }
+          ],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        }
+      ],
+      "id": "3369ac67dde47274"
+    }
+  ]
+}

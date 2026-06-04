@@ -1,0 +1,126 @@
+{
+  "workstations": [],
+  "calendars": [],
+  "resources": [],
+  "prompts": [],
+  "event_rules": [],
+  "schedules": [
+    {
+      "workstation": "WORKSTATION_A",
+      "scheduler": "MASTER",
+      "name": "SIMPLE_LOAD",
+      "id": "ecdb8457dcc2e509",
+      "run_cycle": "EVERY_WEEKDAY",
+      "cron_equivalent": "30 5 * * 1-5",
+      "valid_from": "01/01/2025",
+      "valid_to": null,
+      "start_time": "05:30",
+      "end_time": null,
+      "priority": null,
+      "carry_forward": false,
+      "source_file": "",
+      "raw_definition": "",
+      "deadline": null,
+      "on_until": null,
+      "every": null,
+      "limit": null,
+      "run_cycles": [
+        {
+          "name": "EVERY_WEEKDAY",
+          "raw_phrase": "EVERY_WEEKDAY",
+          "calendar_name": null,
+          "rrule": null,
+          "is_except": false
+        }
+      ],
+      "days_of_week": [
+        "MON",
+        "TUE",
+        "WED",
+        "THU",
+        "FRI"
+      ],
+      "days_of_month": [],
+      "frequency": "weekly",
+      "schedule_follows": [],
+      "jobs": [
+        {
+          "schedule_id": "ecdb8457dcc2e509",
+          "name": "EXTRACT_DATA",
+          "id": "d5050b082adc1535",
+          "script_path": "/apps/abinitio/run.sh",
+          "script_args": "extract.mp",
+          "script_type": "shell",
+          "stream_logon": "tws_user",
+          "recovery": "STOP",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 0,
+          "follows": [],
+          "needs": [],
+          "opens": [],
+          "workstation": "WORKSTATION_A",
+          "stream": "SIMPLE_LOAD",
+          "follows_refs": [],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        }
+      ]
+    }
+  ],
+  "job_streams": [
+    {
+      "workstation": "WORKSTATION_A",
+      "name": "SIMPLE_LOAD",
+      "description": null,
+      "run_cycles": [
+        {
+          "name": "EVERY_WEEKDAY",
+          "raw_phrase": "EVERY_WEEKDAY",
+          "calendar_name": null,
+          "rrule": null,
+          "is_except": false
+        }
+      ],
+      "start_time": "05:30",
+      "end_time": null,
+      "deadline": null,
+      "priority": null,
+      "limit": null,
+      "carry_forward": false,
+      "valid_from": "01/01/2025",
+      "valid_to": null,
+      "every": null,
+      "on_until": null,
+      "stream_needs": [],
+      "jobs": [
+        {
+          "schedule_id": "ecdb8457dcc2e509",
+          "name": "EXTRACT_DATA",
+          "id": "d5050b082adc1535",
+          "script_path": "/apps/abinitio/run.sh",
+          "script_args": "extract.mp",
+          "script_type": "shell",
+          "stream_logon": "tws_user",
+          "recovery": "STOP",
+          "description": null,
+          "priority": null,
+          "order_in_schedule": 0,
+          "follows": [],
+          "needs": [],
+          "opens": [],
+          "workstation": "WORKSTATION_A",
+          "stream": "SIMPLE_LOAD",
+          "follows_refs": [],
+          "recovery_after": null,
+          "every": null,
+          "prompts": [],
+          "on_conditions": []
+        }
+      ],
+      "id": "4748f47eac7b519d"
+    }
+  ]
+}

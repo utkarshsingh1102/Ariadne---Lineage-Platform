@@ -1,0 +1,25 @@
+---
+title: tableau-physical-tables
+sidebar_label: tableau-physical-tables
+---
+
+# Cypher preset · `tableau-physical-tables`
+
+Source: [`apps/gateway/src/lineage_gateway/presets/tableau-physical-tables.cypher`](https://github.com/utkarshsingh1102/Ariadne---Lineage-Platform/blob/main/lineage-platform/apps/gateway/src/lineage_gateway/presets/tableau-physical-tables.cypher).
+
+Invoke via the gateway:
+
+```bash
+curl -X POST "http://localhost:8000/graph/query/preset/tableau-physical-tables?node_id=<id>" \
+  -H "content-type: application/json" -d '{}'
+```
+
+## Cypher
+
+```cypher
+// Every physical :Table referenced by a Tableau workbook, with its datasource hop.
+MATCH path = (w:TableauWorkbook)-[:CONTAINS_DATASOURCE]->(ds:TableauDatasource)-[:READS_TABLE]->(t:Table)
+RETURN path
+LIMIT 500
+```
+

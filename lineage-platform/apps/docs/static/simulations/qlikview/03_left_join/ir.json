@@ -1,0 +1,54 @@
+{
+  "app_name": "03_left_join",
+  "connections": [
+    {
+      "name": "TERADATA_PROD",
+      "type": "ODBC",
+      "data_source": "TERADATA_PROD",
+      "connection_string": null
+    }
+  ],
+  "variables": [],
+  "subroutines": [],
+  "loads": [
+    {
+      "table_name": "Customer",
+      "source_type": "SQL",
+      "fields": [
+        "CustomerID",
+        "CustomerName",
+        "Region"
+      ],
+      "sql_query": "SQL SELECT CustomerID, CustomerName, Region\nFROM PROD.SALES.CUSTOMER",
+      "source_table": "PROD.SALES.CUSTOMER",
+      "line_number": 9,
+      "is_mapping": false
+    },
+    {
+      "table_name": "Orders",
+      "source_type": "SQL",
+      "fields": [
+        "OrderID",
+        "CustomerID",
+        "Amount"
+      ],
+      "sql_query": "SQL SELECT OrderID, CustomerID, Amount\nFROM PROD.SALES.ORDERS",
+      "source_table": "PROD.SALES.ORDERS",
+      "line_number": 14,
+      "is_mapping": false
+    }
+  ],
+  "joins": [
+    {
+      "target_table": "Orders",
+      "source_table": "Customer",
+      "join_type": "INNER"
+    },
+    {
+      "target_table": "Orders",
+      "source_table": "Customer",
+      "join_type": "LEFT"
+    }
+  ],
+  "parse_errors": []
+}

@@ -1,0 +1,9 @@
+{
+  "parser": "spark",
+  "fixture": "02_join_and_select.py",
+  "stats": {
+    "dataframes": 5,
+    "reads": 8,
+    "writes": 1
+  }
+}

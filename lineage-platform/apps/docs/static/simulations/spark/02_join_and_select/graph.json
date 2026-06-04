@@ -1,0 +1,243 @@
+{
+  "nodes": [
+    {
+      "data": {
+        "id": "ebac082886072674",
+        "label": "02_join_and_select.py",
+        "labels": [
+          "SparkScript"
+        ],
+        "source_system": "spark",
+        "properties": {
+          "file_path": "/data/inputs/pyspark/02_join_and_select.py"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "213450accc7ee31a",
+        "label": "orders",
+        "labels": [
+          "DataFrame"
+        ],
+        "source_system": "spark",
+        "properties": {
+          "creation_order": 0
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "tbl:s3://raw/orders/",
+        "label": "s3://raw/orders/",
+        "labels": [
+          "Table"
+        ],
+        "source_system": "spark",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "4e68b7d9905c0fef",
+        "label": "customers",
+        "labels": [
+          "DataFrame"
+        ],
+        "source_system": "spark",
+        "properties": {
+          "creation_order": 0
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "tbl:prod.dim.customers",
+        "label": "prod.dim.customers",
+        "labels": [
+          "Table"
+        ],
+        "source_system": "spark",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "a54edbd82a3c88d2",
+        "label": "__anon_1",
+        "labels": [
+          "DataFrame"
+        ],
+        "source_system": "spark",
+        "properties": {
+          "creation_order": 0
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "2b155dbeda17c3fe",
+        "label": "enriched",
+        "labels": [
+          "DataFrame"
+        ],
+        "source_system": "spark",
+        "properties": {
+          "creation_order": 0
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "tbl:prod.mart.orders_enriched",
+        "label": "prod.mart.orders_enriched",
+        "labels": [
+          "Table"
+        ],
+        "source_system": "spark",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "dcad74ec8a015078",
+        "label": "__anon_3",
+        "labels": [
+          "DataFrame"
+        ],
+        "source_system": "spark",
+        "properties": {
+          "creation_order": 0
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "data": {
+        "id": "ebac082886072674-CONTAINS_DATAFRAME-213450accc7ee31a",
+        "source": "ebac082886072674",
+        "target": "213450accc7ee31a",
+        "label": "CONTAINS_DATAFRAME",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "213450accc7ee31a-READS_TABLE-tbl:s3://raw/orders/",
+        "source": "213450accc7ee31a",
+        "target": "tbl:s3://raw/orders/",
+        "label": "READS_TABLE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "ebac082886072674-CONTAINS_DATAFRAME-4e68b7d9905c0fef",
+        "source": "ebac082886072674",
+        "target": "4e68b7d9905c0fef",
+        "label": "CONTAINS_DATAFRAME",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "4e68b7d9905c0fef-READS_TABLE-tbl:prod.dim.customers",
+        "source": "4e68b7d9905c0fef",
+        "target": "tbl:prod.dim.customers",
+        "label": "READS_TABLE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "ebac082886072674-CONTAINS_DATAFRAME-a54edbd82a3c88d2",
+        "source": "ebac082886072674",
+        "target": "a54edbd82a3c88d2",
+        "label": "CONTAINS_DATAFRAME",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "a54edbd82a3c88d2-READS_TABLE-tbl:s3://raw/orders/",
+        "source": "a54edbd82a3c88d2",
+        "target": "tbl:s3://raw/orders/",
+        "label": "READS_TABLE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "a54edbd82a3c88d2-READS_TABLE-tbl:prod.dim.customers",
+        "source": "a54edbd82a3c88d2",
+        "target": "tbl:prod.dim.customers",
+        "label": "READS_TABLE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "ebac082886072674-CONTAINS_DATAFRAME-2b155dbeda17c3fe",
+        "source": "ebac082886072674",
+        "target": "2b155dbeda17c3fe",
+        "label": "CONTAINS_DATAFRAME",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "2b155dbeda17c3fe-READS_TABLE-tbl:s3://raw/orders/",
+        "source": "2b155dbeda17c3fe",
+        "target": "tbl:s3://raw/orders/",
+        "label": "READS_TABLE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "2b155dbeda17c3fe-READS_TABLE-tbl:prod.dim.customers",
+        "source": "2b155dbeda17c3fe",
+        "target": "tbl:prod.dim.customers",
+        "label": "READS_TABLE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "2b155dbeda17c3fe-WRITES_TABLE-tbl:prod.mart.orders_enriched",
+        "source": "2b155dbeda17c3fe",
+        "target": "tbl:prod.mart.orders_enriched",
+        "label": "WRITES_TABLE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "ebac082886072674-CONTAINS_DATAFRAME-dcad74ec8a015078",
+        "source": "ebac082886072674",
+        "target": "dcad74ec8a015078",
+        "label": "CONTAINS_DATAFRAME",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "dcad74ec8a015078-READS_TABLE-tbl:s3://raw/orders/",
+        "source": "dcad74ec8a015078",
+        "target": "tbl:s3://raw/orders/",
+        "label": "READS_TABLE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "dcad74ec8a015078-READS_TABLE-tbl:prod.dim.customers",
+        "source": "dcad74ec8a015078",
+        "target": "tbl:prod.dim.customers",
+        "label": "READS_TABLE",
+        "properties": {}
+      }
+    }
+  ]
+}

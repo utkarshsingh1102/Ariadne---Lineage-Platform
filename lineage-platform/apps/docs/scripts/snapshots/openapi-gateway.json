@@ -1,0 +1,1444 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Lineage Platform — Gateway",
+    "description": "Aggregation API for the multi-parser knowledge graph.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "description": "Gateway liveness — reports downstream-store reachability.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/version": {
+      "get": {
+        "summary": "Version",
+        "operationId": "version_version_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Version Version Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/graph/schema": {
+      "get": {
+        "tags": [
+          "graph"
+        ],
+        "summary": "Graph Schema",
+        "description": "Live labels, relationship types, property keys.",
+        "operationId": "graph_schema_graph_schema_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "type": "object",
+                  "title": "Response Graph Schema Graph Schema Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/graph/nodes": {
+      "get": {
+        "tags": [
+          "graph"
+        ],
+        "summary": "List Nodes",
+        "operationId": "list_nodes_graph_nodes_get",
+        "parameters": [
+          {
+            "name": "label",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by node label",
+              "title": "Label"
+            },
+            "description": "Filter by node label"
+          },
+          {
+            "name": "name_like",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Substring filter on n.name",
+              "title": "Name Like"
+            },
+            "description": "Substring filter on n.name"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {}
+                  },
+                  "title": "Response List Nodes Graph Nodes Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/graph/node/{node_id}/neighbors": {
+      "get": {
+        "tags": [
+          "graph"
+        ],
+        "summary": "Node Neighbors",
+        "operationId": "node_neighbors_graph_node__node_id__neighbors_get",
+        "parameters": [
+          {
+            "name": "node_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "id / fully_qualified_name / path",
+              "title": "Node Id"
+            },
+            "description": "id / fully_qualified_name / path"
+          },
+          {
+            "name": "depth",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 3,
+              "minimum": 1,
+              "default": 1,
+              "title": "Depth"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {}
+                  },
+                  "title": "Response Node Neighbors Graph Node  Node Id  Neighbors Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/graph/query/presets": {
+      "get": {
+        "tags": [
+          "graph"
+        ],
+        "summary": "List Presets Endpoint",
+        "operationId": "list_presets_endpoint_graph_query_presets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "type": "object",
+                  "title": "Response List Presets Endpoint Graph Query Presets Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/graph/query/preset/{name}": {
+      "post": {
+        "tags": [
+          "graph"
+        ],
+        "summary": "Run Preset",
+        "operationId": "run_preset_graph_query_preset__name__post",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "A registered preset (see /graph/query/presets)",
+              "title": "Name"
+            },
+            "description": "A registered preset (see /graph/query/presets)"
+          },
+          {
+            "name": "node_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Required for lineage-{upstream,downstream}",
+              "title": "Node Id"
+            },
+            "description": "Required for lineage-{upstream,downstream}"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {}
+                  },
+                  "title": "Response Run Preset Graph Query Preset  Name  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/graph/query/cypher": {
+      "post": {
+        "tags": [
+          "graph"
+        ],
+        "summary": "Cypher Query",
+        "operationId": "cypher_query_graph_query_cypher_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CypherRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tws/jobs": {
+      "get": {
+        "tags": [
+          "tws"
+        ],
+        "summary": "Jobs",
+        "description": "Surfaces the v_runtime_window view from the TWS parser's Postgres mirror.\n\nThe view is documented in tws-parser-plan.md §6.2 — it joins jobs to\nscripts and exposes a denormalized row per (job, planned-start, workstation).",
+        "operationId": "jobs_tws_jobs_get",
+        "parameters": [
+          {
+            "name": "start_time",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "HH:MM lower bound (inclusive)",
+              "title": "Start Time"
+            },
+            "description": "HH:MM lower bound (inclusive)"
+          },
+          {
+            "name": "end_time",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "HH:MM upper bound (inclusive)",
+              "title": "End Time"
+            },
+            "description": "HH:MM upper bound (inclusive)"
+          },
+          {
+            "name": "script_path_like",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Script Path Like"
+            }
+          },
+          {
+            "name": "workstation",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Workstation"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 2000,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Jobs Tws Jobs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parse": {
+      "post": {
+        "tags": [
+          "parse"
+        ],
+        "summary": "Parse",
+        "operationId": "parse_parse_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Parse Parse Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parse/upload": {
+      "post": {
+        "tags": [
+          "parse"
+        ],
+        "summary": "Parse Upload",
+        "description": "Accept a multipart file, save it to the shared uploads volume,\nthen dispatch the parser using the in-container path.",
+        "operationId": "parse_upload_parse_upload_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_parse_upload_parse_upload_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Parse Upload Parse Upload Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parse/upload/multi": {
+      "post": {
+        "tags": [
+          "parse"
+        ],
+        "summary": "Parse Upload Multi",
+        "description": "Accept N multipart files, save them under a shared batch directory,\nthen dispatch the parser's ``POST /parse/multi`` with the in-container\npaths. The parser merges the N units and returns shared entities +\ncross-file FOLLOWS analysis.\n\nCurrently TWS-only — other parsers can opt in by implementing their\nown ``/parse/multi`` endpoint.",
+        "operationId": "parse_upload_multi_parse_upload_multi_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_parse_upload_multi_parse_upload_multi_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Parse Upload Multi Parse Upload Multi Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parse/upload/auto": {
+      "post": {
+        "tags": [
+          "parse"
+        ],
+        "summary": "Parse Upload Auto",
+        "description": "Heterogeneous batch upload — accept N files of any supported types,\nclassify each by file suffix, and dispatch every file to its matching\nparser's ``/parse`` endpoint concurrently.\n\nUnlike ``/upload/multi`` (which merges N TWS files into a single\ncross-file lineage analysis), this endpoint treats each file as an\nINDEPENDENT parse and returns per-file results. The user can mix any\ncombination of Tableau, TWS, QlikView, and Spark files in a single\nupload — the system identifies the type from the extension and routes\neach to the right parser without further prompting.\n\nFiles with unrecognised suffixes are still saved + reported as\n``unsupported`` so the user sees what was skipped (no silent drops).",
+        "operationId": "parse_upload_auto_parse_upload_auto_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_parse_upload_auto_parse_upload_auto_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Parse Upload Auto Parse Upload Auto Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parse/parsers/health": {
+      "get": {
+        "tags": [
+          "parse"
+        ],
+        "summary": "Parser Health",
+        "description": "Quick liveness check across every parser. Each entry is 'ok'/'unreachable'.",
+        "operationId": "parser_health_parse_parsers_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Parser Health Parse Parsers Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/files": {
+      "get": {
+        "tags": [
+          "files"
+        ],
+        "summary": "List Files",
+        "description": "Return parsed files grouped by source system.\n\nEmpty list per source when nothing has been ingested yet. Per-source\nfailures are isolated — one broken query won't blank the rest.",
+        "operationId": "list_files_files_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "items": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "type": "object",
+                  "title": "Response List Files Files Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/files/{source}/{file_id}": {
+      "delete": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Delete File",
+        "description": "Remove a parsed file from Neo4j along with the nodes it exclusively owns.\n\nShared label nodes (:Table, :Connection) are left intact even if this\nwas the only file referencing them — they may carry value beyond a\nsingle parse and we don't want a delete here to silently take them\nout from under another parser.",
+        "operationId": "delete_file_files__source___file_id__delete",
+        "parameters": [
+          {
+            "name": "source",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Source"
+            }
+          },
+          {
+            "name": "file_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "File Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Delete File Files  Source   File Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/files/bulk-delete": {
+      "post": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Bulk Delete Files",
+        "description": "Delete N parsed files in one round-trip.\n\nEach file is processed independently using the same per-source subgraph\nwalk as the single-file DELETE — shared :Table / :Connection nodes stay\nintact. A failure on one file (unknown source, 404, Neo4j error) is\nrecorded in ``results`` for that file but doesn't abort the batch.",
+        "operationId": "bulk_delete_files_files_bulk_delete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkDeleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Bulk Delete Files Files Bulk Delete Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/files/{source}/{file_id}/source": {
+      "get": {
+        "tags": [
+          "files"
+        ],
+        "summary": "File Source",
+        "description": "Return the raw on-disk text of a parsed file plus light metadata.\n\nUsed by the lineage tracer's \"View Source\" panel to show the script\nbehind a trace. Never executes or transforms the file — straight read,\nUTF-8 decode, hard-capped at ``_MAX_SOURCE_BYTES``.",
+        "operationId": "file_source_files__source___file_id__source_get",
+        "parameters": [
+          {
+            "name": "source",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Source"
+            }
+          },
+          {
+            "name": "file_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "File Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response File Source Files  Source   File Id  Source Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/files/summary": {
+      "get": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Files Summary",
+        "description": "Lightweight counts per source — fast enough for the Dashboard.",
+        "operationId": "files_summary_files_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "type": "object",
+                  "title": "Response Files Summary Files Summary Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "List Projects",
+        "description": "List all projects with file counts (overall + per source type).",
+        "operationId": "list_projects_projects_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectSummary"
+                  },
+                  "type": "array",
+                  "title": "Response List Projects Projects Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Create Project",
+        "description": "Create a new project. 409 if the name is already taken — this route\nenforces strict uniqueness for explicit user-create. The internal\n``get_or_create_project`` helper is idempotent for the upload flow.",
+        "operationId": "create_project_projects_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Create Project Projects Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{project_id}": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Get Project",
+        "description": "Project detail — header + every file in it, grouped by source_type\nso the frontend can render per-parser subfolders without re-grouping.",
+        "operationId": "get_project_projects__project_id__get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Delete Project",
+        "description": "Drop a project + its project_files rows. The underlying Neo4j file\nnodes are NOT touched — they survive so the file is still browsable\nvia the source-type folders.",
+        "operationId": "delete_project_projects__project_id__delete",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Delete Project Projects  Project Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_parse_upload_auto_parse_upload_auto_post": {
+        "properties": {
+          "files": {
+            "items": {
+              "type": "string",
+              "contentMediaType": "application/octet-stream"
+            },
+            "type": "array",
+            "title": "Files",
+            "description": "1-30 mixed-source files"
+          },
+          "overwrite": {
+            "type": "boolean",
+            "title": "Overwrite",
+            "default": false
+          },
+          "project_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Name",
+            "description": "Optional. If set, every successfully-parsed file is grouped into this project (created if it doesn't already exist). The name must be unique across all projects."
+          }
+        },
+        "type": "object",
+        "required": [
+          "files"
+        ],
+        "title": "Body_parse_upload_auto_parse_upload_auto_post"
+      },
+      "Body_parse_upload_multi_parse_upload_multi_post": {
+        "properties": {
+          "source_type": {
+            "type": "string",
+            "title": "Source Type",
+            "description": "tws (others not yet supported)"
+          },
+          "files": {
+            "items": {
+              "type": "string",
+              "contentMediaType": "application/octet-stream"
+            },
+            "type": "array",
+            "title": "Files",
+            "description": "2-20 files to analyse together"
+          },
+          "overwrite": {
+            "type": "boolean",
+            "title": "Overwrite",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_type",
+          "files"
+        ],
+        "title": "Body_parse_upload_multi_parse_upload_multi_post"
+      },
+      "Body_parse_upload_parse_upload_post": {
+        "properties": {
+          "source_type": {
+            "type": "string",
+            "title": "Source Type",
+            "description": "tableau | tws | qlikview | spark"
+          },
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          },
+          "overwrite": {
+            "type": "boolean",
+            "title": "Overwrite",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_type",
+          "file"
+        ],
+        "title": "Body_parse_upload_parse_upload_post"
+      },
+      "BulkDeleteRequest": {
+        "properties": {
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/_BulkDeleteItem"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Files",
+            "description": "1-500 files to delete. Larger batches should page client-side."
+          }
+        },
+        "type": "object",
+        "required": [
+          "files"
+        ],
+        "title": "BulkDeleteRequest"
+      },
+      "CypherRequest": {
+        "properties": {
+          "cypher": {
+            "type": "string",
+            "title": "Cypher"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Parameters",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "cypher"
+        ],
+        "title": "CypherRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ParseRequest": {
+        "properties": {
+          "source_type": {
+            "type": "string",
+            "title": "Source Type",
+            "description": "tableau | tws | qlikview | spark"
+          },
+          "file_path": {
+            "type": "string",
+            "title": "File Path",
+            "description": "Absolute path inside the parser's mounted volume"
+          },
+          "overwrite": {
+            "type": "boolean",
+            "title": "Overwrite",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_type",
+          "file_path"
+        ],
+        "title": "ParseRequest"
+      },
+      "ProjectCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ProjectCreate"
+      },
+      "ProjectDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectFile"
+            },
+            "type": "array",
+            "title": "Files"
+          },
+          "by_source": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/ProjectFile"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "By Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "created_at",
+          "files",
+          "by_source"
+        ],
+        "title": "ProjectDetail"
+      },
+      "ProjectFile": {
+        "properties": {
+          "neo4j_id": {
+            "type": "string",
+            "title": "Neo4J Id"
+          },
+          "source_type": {
+            "type": "string",
+            "title": "Source Type"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name"
+          },
+          "added_at": {
+            "type": "string",
+            "title": "Added At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "neo4j_id",
+          "source_type",
+          "added_at"
+        ],
+        "title": "ProjectFile"
+      },
+      "ProjectSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "file_count": {
+            "type": "integer",
+            "title": "File Count"
+          },
+          "by_source": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "By Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "created_at",
+          "file_count",
+          "by_source"
+        ],
+        "title": "ProjectSummary"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "_BulkDeleteItem": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "tableau | tws | qlikview | spark"
+          },
+          "file_id": {
+            "type": "string",
+            "title": "File Id",
+            "description": "The node id of the file to delete"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "file_id"
+        ],
+        "title": "_BulkDeleteItem"
+      }
+    }
+  }
+}

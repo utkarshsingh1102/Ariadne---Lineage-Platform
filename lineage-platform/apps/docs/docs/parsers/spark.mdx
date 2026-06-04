@@ -1,0 +1,66 @@
+---
+title: Spark parser
+sidebar_label: Spark parser
+---
+
+import ParserSimulator from '@site/src/components/ParserSimulator';
+
+# Spark parser
+
+`.py` / `.sql` / `.ipynb` (and `.dbc`) via Python AST + sqlglot —
+DataFrame chains, joins, writes, notebook cells, runtime correlation.
+
+## Simulator — simple read / write
+
+A minimal PySpark script: read a parquet, write to another path.
+
+<ParserSimulator parser="spark" fixture="01_simple_read_write" />
+
+## Simulator — join and select
+
+Two DataFrames joined and projected — exercises the chain resolver.
+
+<ParserSimulator parser="spark" fixture="02_join_and_select" />
+
+## Pipeline
+
+1. **Input route** — `.py` straight to the AST walker. `.ipynb`
+   concatenates code cells via `input/notebook.py`, stripping Jupyter
+   magics (`!pip install …`, `%%bash`, `%%sql` → language_override,
+   `%%timeit` → body kept) so the AST sees pure Python. `.sql` files
+   route to sqlglot directly.
+2. **PySpark AST walk** — `pyspark/visitor.py` walks the Python AST
+   building a chain map (variable → DataFrame derivation). Recognises
+   `spark.read.*`, `.join`, `.filter`, `.groupBy`, `.agg`, `.withColumn`,
+   `.write.*`, plus `spark.createDataFrame` for inline frame
+   construction. Persistence / caching hints (`.cache()`, `.persist()`)
+   and broadcast / partition metadata captured on `DataFrameIR`.
+3. **SQL lineage** — `sparksql/lineage.py` parses Spark SQL queries
+   (from `spark.sql(…)` or `.sql` files). Column-level when source
+   columns are known, table-level otherwise.
+4. **Project & cross-file imports** — `orchestration/` resolves
+   `from x import y` across the project into a `ProjectIR` with
+   cross-file DataFrame references. Airflow DAGs and Databricks workflows
+   attach as `OrchestrationJobIR`.
+5. **Runtime correlation** — `runtime/` ingests Delta logs + Spark
+   event logs (JSON) to bolt schema-evolution events and stage/job
+   metrics back onto static IR nodes.
+6. **IR** — `models/domain.py`: `DataFrameIR` (derivations, joins,
+   writes, caching, partition, transform_chain), `AttributeIR`
+   (nested-struct field paths, type history), `ConnectionIR`, `TableIR`,
+   `ScriptIR`, `NotebookCellIR`, `NotebookRunEdgeIR`, `ProjectIR`,
+   `OrchestrationJobIR`, `RuntimeIR`.
+7. **Write** — `graph/writer.py` emits `:SparkScript`, `:DataFrame`,
+   `:Attribute`, `:Table`, `:Connection`, `:UDF`, `:Project`,
+   `:OrchestrationJob`, `:NotebookRun` and the `CONTAINS_DATAFRAME`,
+   `DERIVES_FROM_DATAFRAME`, `READS_TABLE`, `WRITES_TABLE`, `HAS_FIELD`,
+   `CALLS_UDF` edges. Shared-label nodes (`:Table`, `:Connection`,
+   `:Script`) use the cross-parser id derivations from
+   `lineage-contracts/` so a table read by Spark and exposed by Tableau
+   collapses to one node.
+
+## See also
+
+- [API reference](/reference/openapi/spark) — every endpoint.
+- [Spark tests](/tests/spark) — fixture catalogue + feature matrix.
+- [Pipeline architecture](/parsers/architecture) — shared pattern.

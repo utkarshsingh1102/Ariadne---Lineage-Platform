@@ -1,0 +1,635 @@
+{
+  "id": "ebac082886072674",
+  "name": "02_join_and_select",
+  "file_path": "/data/inputs/pyspark/02_join_and_select.py",
+  "script_type": "pyspark",
+  "dataframes": [
+    {
+      "var_name": "orders",
+      "creation_order": 0,
+      "is_anonymous": false,
+      "lineage_conditional": false,
+      "lineage_partial": false,
+      "from_sql_block": false,
+      "reads_from": [
+        {
+          "fully_qualified_name": "s3://raw/orders/",
+          "location": "s3://raw/orders/",
+          "storage_format": "parquet",
+          "name": null,
+          "schema": null,
+          "database": null,
+          "connection": {
+            "id": "c0ca59bd11a33961",
+            "klass": "s3",
+            "server": "raw",
+            "port": null,
+            "dbname": null,
+            "schema": null,
+            "username": null,
+            "options": {
+              "format": "parquet",
+              "path": "/orders"
+            },
+            "resolved": true,
+            "has_credentials": false,
+            "source": null,
+            "detail": null,
+            "line": 9
+          },
+          "line": 9
+        }
+      ],
+      "writes_to": [],
+      "write_edges": [],
+      "fields": [],
+      "derivations": [],
+      "derives_from_dataframe": [],
+      "joins": [],
+      "id": "213450accc7ee31a",
+      "cell_index": null,
+      "renames": [],
+      "cached": false,
+      "persist_level": null,
+      "checkpointed": false,
+      "partition_count": null,
+      "partition_columns": [],
+      "broadcast_hint": false,
+      "is_anchor": true,
+      "transform_chain": [],
+      "input_anchor_ids": [],
+      "produced_by_function": null,
+      "line_range": null
+    },
+    {
+      "var_name": "customers",
+      "creation_order": 0,
+      "is_anonymous": false,
+      "lineage_conditional": false,
+      "lineage_partial": false,
+      "from_sql_block": false,
+      "reads_from": [
+        {
+          "fully_qualified_name": "prod.dim.customers",
+          "location": null,
+          "storage_format": "hive",
+          "name": null,
+          "schema": null,
+          "database": null,
+          "connection": {
+            "id": "5f53bf7eefd3d62e",
+            "klass": "hive",
+            "server": "metastore",
+            "port": null,
+            "dbname": "default",
+            "schema": null,
+            "username": null,
+            "options": {
+              "table": "prod.dim.customers"
+            },
+            "resolved": true,
+            "has_credentials": false,
+            "source": null,
+            "detail": null,
+            "line": 10
+          },
+          "line": 10
+        }
+      ],
+      "writes_to": [],
+      "write_edges": [],
+      "fields": [],
+      "derivations": [],
+      "derives_from_dataframe": [],
+      "joins": [],
+      "id": "4e68b7d9905c0fef",
+      "cell_index": null,
+      "renames": [],
+      "cached": false,
+      "persist_level": null,
+      "checkpointed": false,
+      "partition_count": null,
+      "partition_columns": [],
+      "broadcast_hint": false,
+      "is_anchor": true,
+      "transform_chain": [],
+      "input_anchor_ids": [],
+      "produced_by_function": null,
+      "line_range": null
+    },
+    {
+      "var_name": "__anon_1",
+      "creation_order": 0,
+      "is_anonymous": true,
+      "lineage_conditional": false,
+      "lineage_partial": false,
+      "from_sql_block": false,
+      "reads_from": [
+        {
+          "fully_qualified_name": "s3://raw/orders/",
+          "location": "s3://raw/orders/",
+          "storage_format": "parquet",
+          "name": null,
+          "schema": null,
+          "database": null,
+          "connection": {
+            "id": "c0ca59bd11a33961",
+            "klass": "s3",
+            "server": "raw",
+            "port": null,
+            "dbname": null,
+            "schema": null,
+            "username": null,
+            "options": {
+              "format": "parquet",
+              "path": "/orders"
+            },
+            "resolved": true,
+            "has_credentials": false,
+            "source": null,
+            "detail": null,
+            "line": 9
+          },
+          "line": 9
+        },
+        {
+          "fully_qualified_name": "prod.dim.customers",
+          "location": null,
+          "storage_format": "hive",
+          "name": null,
+          "schema": null,
+          "database": null,
+          "connection": {
+            "id": "5f53bf7eefd3d62e",
+            "klass": "hive",
+            "server": "metastore",
+            "port": null,
+            "dbname": "default",
+            "schema": null,
+            "username": null,
+            "options": {
+              "table": "prod.dim.customers"
+            },
+            "resolved": true,
+            "has_credentials": false,
+            "source": null,
+            "detail": null,
+            "line": 10
+          },
+          "line": 10
+        }
+      ],
+      "writes_to": [],
+      "write_edges": [],
+      "fields": [],
+      "derivations": [],
+      "derives_from_dataframe": [
+        {
+          "source_var": "orders",
+          "source_id": "213450accc7ee31a",
+          "via": "join"
+        },
+        {
+          "source_var": "orders",
+          "source_id": "213450accc7ee31a",
+          "via": "join"
+        },
+        {
+          "source_var": "customers",
+          "source_id": "4e68b7d9905c0fef",
+          "via": "join"
+        }
+      ],
+      "joins": [
+        {
+          "left": "orders",
+          "right": "customers",
+          "join_type": "left",
+          "join_condition": "orders.customer_id == customers.id"
+        }
+      ],
+      "id": "a54edbd82a3c88d2",
+      "cell_index": null,
+      "renames": [],
+      "cached": false,
+      "persist_level": null,
+      "checkpointed": false,
+      "partition_count": null,
+      "partition_columns": [],
+      "broadcast_hint": false,
+      "is_anchor": false,
+      "transform_chain": [
+        {
+          "seq": 0,
+          "op": "join",
+          "kind": "join",
+          "expr": "orders.customer_id == customers.id",
+          "output_column": null,
+          "output_columns": [],
+          "input_columns": [],
+          "join_other": "customers",
+          "join_keys": [],
+          "join_how": "left",
+          "line": 13
+        }
+      ],
+      "input_anchor_ids": [],
+      "produced_by_function": null,
+      "line_range": null
+    },
+    {
+      "var_name": "enriched",
+      "creation_order": 0,
+      "is_anonymous": false,
+      "lineage_conditional": false,
+      "lineage_partial": false,
+      "from_sql_block": false,
+      "reads_from": [
+        {
+          "fully_qualified_name": "s3://raw/orders/",
+          "location": "s3://raw/orders/",
+          "storage_format": "parquet",
+          "name": null,
+          "schema": null,
+          "database": null,
+          "connection": {
+            "id": "c0ca59bd11a33961",
+            "klass": "s3",
+            "server": "raw",
+            "port": null,
+            "dbname": null,
+            "schema": null,
+            "username": null,
+            "options": {
+              "format": "parquet",
+              "path": "/orders"
+            },
+            "resolved": true,
+            "has_credentials": false,
+            "source": null,
+            "detail": null,
+            "line": 9
+          },
+          "line": 9
+        },
+        {
+          "fully_qualified_name": "prod.dim.customers",
+          "location": null,
+          "storage_format": "hive",
+          "name": null,
+          "schema": null,
+          "database": null,
+          "connection": {
+            "id": "5f53bf7eefd3d62e",
+            "klass": "hive",
+            "server": "metastore",
+            "port": null,
+            "dbname": "default",
+            "schema": null,
+            "username": null,
+            "options": {
+              "table": "prod.dim.customers"
+            },
+            "resolved": true,
+            "has_credentials": false,
+            "source": null,
+            "detail": null,
+            "line": 10
+          },
+          "line": 10
+        }
+      ],
+      "writes_to": [
+        {
+          "fully_qualified_name": "prod.mart.orders_enriched",
+          "location": null,
+          "storage_format": "delta",
+          "name": null,
+          "schema": null,
+          "database": null,
+          "connection": {
+            "id": "5f53bf7eefd3d62e",
+            "klass": "hive",
+            "server": "metastore",
+            "port": null,
+            "dbname": "default",
+            "schema": null,
+            "username": null,
+            "options": {
+              "table": "prod.mart.orders_enriched",
+              "storage_format": "delta"
+            },
+            "resolved": true,
+            "has_credentials": false,
+            "source": null,
+            "detail": null,
+            "line": 18
+          },
+          "line": 18
+        }
+      ],
+      "write_edges": [
+        {
+          "target": {
+            "fully_qualified_name": "prod.mart.orders_enriched",
+            "location": null,
+            "storage_format": "delta",
+            "name": null,
+            "schema": null,
+            "database": null,
+            "connection": {
+              "id": "5f53bf7eefd3d62e",
+              "klass": "hive",
+              "server": "metastore",
+              "port": null,
+              "dbname": "default",
+              "schema": null,
+              "username": null,
+              "options": {
+                "table": "prod.mart.orders_enriched",
+                "storage_format": "delta"
+              },
+              "resolved": true,
+              "has_credentials": false,
+              "source": null,
+              "detail": null,
+              "line": 18
+            },
+            "line": 18
+          },
+          "mode": "overwrite",
+          "via": "saveAsTable",
+          "partition_columns": [],
+          "z_order_columns": [],
+          "line": 18
+        }
+      ],
+      "fields": [
+        {
+          "name": "order_id",
+          "datatype": null,
+          "is_derived": false,
+          "derivation_formula": null,
+          "path": null,
+          "type_history": []
+        },
+        {
+          "name": "customer_id",
+          "datatype": null,
+          "is_derived": false,
+          "derivation_formula": null,
+          "path": null,
+          "type_history": []
+        },
+        {
+          "name": "amount",
+          "datatype": null,
+          "is_derived": false,
+          "derivation_formula": null,
+          "path": null,
+          "type_history": []
+        },
+        {
+          "name": "region",
+          "datatype": null,
+          "is_derived": false,
+          "derivation_formula": null,
+          "path": null,
+          "type_history": []
+        }
+      ],
+      "derivations": [
+        {
+          "target_column": "order_id",
+          "source_columns": [
+            "order_id"
+          ],
+          "via": "select",
+          "formula": null
+        },
+        {
+          "target_column": "customer_id",
+          "source_columns": [
+            "customer_id"
+          ],
+          "via": "select",
+          "formula": null
+        },
+        {
+          "target_column": "amount",
+          "source_columns": [
+            "amount"
+          ],
+          "via": "select",
+          "formula": null
+        },
+        {
+          "target_column": "region",
+          "source_columns": [
+            "region"
+          ],
+          "via": "select",
+          "formula": null
+        }
+      ],
+      "derives_from_dataframe": [
+        {
+          "source_var": "__anon_1",
+          "source_id": "a54edbd82a3c88d2",
+          "via": "select"
+        }
+      ],
+      "joins": [],
+      "id": "2b155dbeda17c3fe",
+      "cell_index": null,
+      "renames": [],
+      "cached": false,
+      "persist_level": null,
+      "checkpointed": false,
+      "partition_count": null,
+      "partition_columns": [],
+      "broadcast_hint": false,
+      "is_anchor": true,
+      "transform_chain": [
+        {
+          "seq": 0,
+          "op": "join",
+          "kind": "join",
+          "expr": "orders.customer_id == customers.id",
+          "output_column": null,
+          "output_columns": [],
+          "input_columns": [],
+          "join_other": "customers",
+          "join_keys": [],
+          "join_how": "left",
+          "line": 13
+        },
+        {
+          "seq": 1,
+          "op": "select",
+          "kind": "select",
+          "expr": null,
+          "output_column": null,
+          "output_columns": [
+            "order_id",
+            "amount",
+            "region",
+            "customer_id"
+          ],
+          "input_columns": [],
+          "join_other": null,
+          "join_keys": [],
+          "join_how": null,
+          "line": 13
+        }
+      ],
+      "input_anchor_ids": [
+        "213450accc7ee31a",
+        "4e68b7d9905c0fef"
+      ],
+      "produced_by_function": null,
+      "line_range": [
+        13,
+        13
+      ]
+    },
+    {
+      "var_name": "__anon_3",
+      "creation_order": 0,
+      "is_anonymous": true,
+      "lineage_conditional": false,
+      "lineage_partial": false,
+      "from_sql_block": false,
+      "reads_from": [
+        {
+          "fully_qualified_name": "s3://raw/orders/",
+          "location": "s3://raw/orders/",
+          "storage_format": "parquet",
+          "name": null,
+          "schema": null,
+          "database": null,
+          "connection": {
+            "id": "c0ca59bd11a33961",
+            "klass": "s3",
+            "server": "raw",
+            "port": null,
+            "dbname": null,
+            "schema": null,
+            "username": null,
+            "options": {
+              "format": "parquet",
+              "path": "/orders"
+            },
+            "resolved": true,
+            "has_credentials": false,
+            "source": null,
+            "detail": null,
+            "line": 9
+          },
+          "line": 9
+        },
+        {
+          "fully_qualified_name": "prod.dim.customers",
+          "location": null,
+          "storage_format": "hive",
+          "name": null,
+          "schema": null,
+          "database": null,
+          "connection": {
+            "id": "5f53bf7eefd3d62e",
+            "klass": "hive",
+            "server": "metastore",
+            "port": null,
+            "dbname": "default",
+            "schema": null,
+            "username": null,
+            "options": {
+              "table": "prod.dim.customers"
+            },
+            "resolved": true,
+            "has_credentials": false,
+            "source": null,
+            "detail": null,
+            "line": 10
+          },
+          "line": 10
+        }
+      ],
+      "writes_to": [],
+      "write_edges": [],
+      "fields": [
+        {
+          "name": "order_id",
+          "datatype": null,
+          "is_derived": false,
+          "derivation_formula": null,
+          "path": null,
+          "type_history": []
+        },
+        {
+          "name": "customer_id",
+          "datatype": null,
+          "is_derived": false,
+          "derivation_formula": null,
+          "path": null,
+          "type_history": []
+        },
+        {
+          "name": "amount",
+          "datatype": null,
+          "is_derived": false,
+          "derivation_formula": null,
+          "path": null,
+          "type_history": []
+        },
+        {
+          "name": "region",
+          "datatype": null,
+          "is_derived": false,
+          "derivation_formula": null,
+          "path": null,
+          "type_history": []
+        }
+      ],
+      "derivations": [],
+      "derives_from_dataframe": [
+        {
+          "source_var": "enriched",
+          "source_id": "2b155dbeda17c3fe",
+          "via": "write"
+        }
+      ],
+      "joins": [],
+      "id": "dcad74ec8a015078",
+      "cell_index": null,
+      "renames": [],
+      "cached": false,
+      "persist_level": null,
+      "checkpointed": false,
+      "partition_count": null,
+      "partition_columns": [],
+      "broadcast_hint": false,
+      "is_anchor": false,
+      "transform_chain": [],
+      "input_anchor_ids": [],
+      "produced_by_function": null,
+      "line_range": null
+    }
+  ],
+  "udfs": [],
+  "warnings": [],
+  "imports": [
+    {
+      "from_script_id": "ebac082886072674",
+      "symbol": "SparkSession",
+      "kind": "from",
+      "module": "pyspark.sql",
+      "to_script_id": null,
+      "to_file_path": null,
+      "line": 5
+    }
+  ],
+  "cells": [],
+  "notebook_runs": [],
+  "parsed_at": null
+}

@@ -1,0 +1,17 @@
+// ======================================================
+// Fixture 01 — Simplest possible case
+// One ODBC connection, one labelled SQL LOAD, no derivations.
+// ======================================================
+
+ODBC CONNECT TO 'TERADATA_PROD';
+
+Customer:
+LOAD
+    CustomerID,
+    CustomerName,
+    Region;
+SQL SELECT
+    CustomerID,
+    CustomerName,
+    Region
+FROM PROD.SALES.CUSTOMER;

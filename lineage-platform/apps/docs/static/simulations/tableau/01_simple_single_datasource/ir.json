@@ -1,0 +1,161 @@
+{
+  "id": "5239e16144ba43c2",
+  "name": "01_simple_single_datasource",
+  "file_path": "/data/inputs/01_simple_single_datasource.twb",
+  "version": "2024.1",
+  "parsed_at": "2026-06-04T05:07:02.305258+00:00",
+  "datasources": [
+    {
+      "id": "1be60cb6b353cef8",
+      "name": "customer_ds",
+      "workbook_id": "5239e16144ba43c2",
+      "caption": "Customer Data",
+      "is_federated": false,
+      "has_extract": false,
+      "connections": [
+        {
+          "id": "dc8cdfd1b0af39e8",
+          "klass": "teradata",
+          "server": "td-prod",
+          "dbname": "PROD",
+          "schema": "SALES",
+          "port": "1025",
+          "username": "etl_user",
+          "line": 10
+        }
+      ],
+      "tables": [
+        {
+          "id": "f0c1630fa6f9ec96",
+          "name": "Customer",
+          "schema": "SALES",
+          "database": "PROD",
+          "fully_qualified_name": "PROD.SALES.CUSTOMER",
+          "relation_type": "table",
+          "source_type": "database",
+          "line": 11,
+          "raw_sql": ""
+        }
+      ],
+      "fields": [
+        {
+          "id": "67cbd5357b628ddf",
+          "name": "CustomerID",
+          "datasource_id": "1be60cb6b353cef8",
+          "datatype": "integer",
+          "role": "dimension",
+          "is_calculated": false,
+          "formula": "",
+          "table_fqn": "PROD.SALES.CUSTOMER",
+          "line": 12,
+          "default_aggregation": "",
+          "ordinal": null,
+          "precision": null,
+          "scale": null,
+          "contains_null": null,
+          "value_aliases": {}
+        },
+        {
+          "id": "9ba6a924731171d7",
+          "name": "CustomerName",
+          "datasource_id": "1be60cb6b353cef8",
+          "datatype": "string",
+          "role": "dimension",
+          "is_calculated": false,
+          "formula": "",
+          "table_fqn": "PROD.SALES.CUSTOMER",
+          "line": 13,
+          "default_aggregation": "",
+          "ordinal": null,
+          "precision": null,
+          "scale": null,
+          "contains_null": null,
+          "value_aliases": {}
+        },
+        {
+          "id": "38971a7d908af127",
+          "name": "Region",
+          "datasource_id": "1be60cb6b353cef8",
+          "datatype": "string",
+          "role": "dimension",
+          "is_calculated": false,
+          "formula": "",
+          "table_fqn": "PROD.SALES.CUSTOMER",
+          "line": 14,
+          "default_aggregation": "",
+          "ordinal": null,
+          "precision": null,
+          "scale": null,
+          "contains_null": null,
+          "value_aliases": {}
+        }
+      ],
+      "derives_from": [],
+      "has_columns": [
+        {
+          "table_id": "f0c1630fa6f9ec96",
+          "field_id": "67cbd5357b628ddf"
+        },
+        {
+          "table_id": "f0c1630fa6f9ec96",
+          "field_id": "9ba6a924731171d7"
+        },
+        {
+          "table_id": "f0c1630fa6f9ec96",
+          "field_id": "38971a7d908af127"
+        }
+      ],
+      "reads_tables": [
+        {
+          "datasource_id": "1be60cb6b353cef8",
+          "table_id": "f0c1630fa6f9ec96",
+          "relation_type": "table",
+          "line": 11
+        }
+      ],
+      "filters": [],
+      "groups": [],
+      "sets": [],
+      "bins": [],
+      "hierarchies": [],
+      "cte_columns": [],
+      "line": 9,
+      "line_end": null
+    }
+  ],
+  "worksheets": [
+    {
+      "id": "794cbf90a887eba4",
+      "name": "Customers by Region",
+      "workbook_id": "5239e16144ba43c2",
+      "field_usages": [
+        {
+          "field_name": "Region",
+          "shelf": "rows",
+          "datasource_name": "customer_ds",
+          "line": 25,
+          "aggregation": ""
+        },
+        {
+          "field_name": "CustomerName",
+          "shelf": "cols",
+          "datasource_name": "customer_ds",
+          "line": 26,
+          "aggregation": ""
+        }
+      ],
+      "filters": [],
+      "sorts": [],
+      "blends": [],
+      "line": 18,
+      "line_end": null
+    }
+  ],
+  "dashboards": [],
+  "parameters": [],
+  "parameter_scopes": [],
+  "cross_ds_refs": [],
+  "line": 7,
+  "line_end": 31,
+  "warnings": []
+}

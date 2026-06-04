@@ -1,0 +1,13 @@
+{
+  "parser": "tws",
+  "fixture": "01_single_schedule_single_job.txt",
+  "parse_errors": [],
+  "warnings": [],
+  "stats": {
+    "schedules": 1,
+    "job_streams": 1,
+    "jobs": 1,
+    "follows_edges": 0,
+    "recovery_edges": 0
+  }
+}

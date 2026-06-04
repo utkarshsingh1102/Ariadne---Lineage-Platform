@@ -1,0 +1,112 @@
+{
+  "nodes": [
+    {
+      "data": {
+        "id": "f72cc6c7d880e0a3",
+        "label": "01_simple_read_write.py",
+        "labels": [
+          "SparkScript"
+        ],
+        "source_system": "spark",
+        "properties": {
+          "file_path": "/data/inputs/pyspark/01_simple_read_write.py"
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "f7e6a8b85463899e",
+        "label": "orders",
+        "labels": [
+          "DataFrame"
+        ],
+        "source_system": "spark",
+        "properties": {
+          "creation_order": 0
+        }
+      }
+    },
+    {
+      "data": {
+        "id": "tbl:s3://raw/orders/",
+        "label": "s3://raw/orders/",
+        "labels": [
+          "Table"
+        ],
+        "source_system": "spark",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "tbl:prod.mart.orders",
+        "label": "prod.mart.orders",
+        "labels": [
+          "Table"
+        ],
+        "source_system": "spark",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "c67e707bf99c906f",
+        "label": "__anon_1",
+        "labels": [
+          "DataFrame"
+        ],
+        "source_system": "spark",
+        "properties": {
+          "creation_order": 0
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "data": {
+        "id": "f72cc6c7d880e0a3-CONTAINS_DATAFRAME-f7e6a8b85463899e",
+        "source": "f72cc6c7d880e0a3",
+        "target": "f7e6a8b85463899e",
+        "label": "CONTAINS_DATAFRAME",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "f7e6a8b85463899e-READS_TABLE-tbl:s3://raw/orders/",
+        "source": "f7e6a8b85463899e",
+        "target": "tbl:s3://raw/orders/",
+        "label": "READS_TABLE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "f7e6a8b85463899e-WRITES_TABLE-tbl:prod.mart.orders",
+        "source": "f7e6a8b85463899e",
+        "target": "tbl:prod.mart.orders",
+        "label": "WRITES_TABLE",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "f72cc6c7d880e0a3-CONTAINS_DATAFRAME-c67e707bf99c906f",
+        "source": "f72cc6c7d880e0a3",
+        "target": "c67e707bf99c906f",
+        "label": "CONTAINS_DATAFRAME",
+        "properties": {}
+      }
+    },
+    {
+      "data": {
+        "id": "c67e707bf99c906f-READS_TABLE-tbl:s3://raw/orders/",
+        "source": "c67e707bf99c906f",
+        "target": "tbl:s3://raw/orders/",
+        "label": "READS_TABLE",
+        "properties": {}
+      }
+    }
+  ]
+}

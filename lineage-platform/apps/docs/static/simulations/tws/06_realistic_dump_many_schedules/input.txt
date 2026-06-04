@@ -1,0 +1,97 @@
+# Fixture 06 — Realistic dump
+# Plan §11: multiple job streams, multiple jobs per stream, mixed script types,
+# inter-stream FOLLOWS with the .@ wildcard, cross-workstation references,
+# comments (line and block), continuation lines.
+
+# ============================================================
+# Stream A — Infrastructure pre-checks (runs first)
+# ============================================================
+SCHEDULE WS_PROD#MASTER#NIGHTLY_INFRA_CHECK
+  ON RUNCYCLE EVERY_WEEKDAY VALIDFROM 01/01/2025
+  AT 0200 UNTIL 0500
+  CARRYFORWARD
+  PRIORITY 80
+:
+  CHECK_DISK
+    SCRIPTNAME "/apps/ops/check_disk.sh"
+    STREAMLOGON ops_user
+    RECOVERY STOP
+
+  CHECK_NETWORK
+    SCRIPTNAME "/apps/ops/check_network.sh"
+    STREAMLOGON ops_user
+    FOLLOWS CHECK_DISK
+    RECOVERY STOP
+
+  CHECK_DB_HEALTH
+    SCRIPTNAME "/apps/ops/check_db.sh prod"
+    STREAMLOGON ops_user
+    FOLLOWS CHECK_NETWORK
+    NEEDS 1 DB_HEALTH_CHECK_SLOT
+    RECOVERY STOP
+END
+
+/* ============================================================
+   Stream B — Sales ETL pipeline (depends on stream A)
+   ============================================================ */
+SCHEDULE WS_PROD#MASTER#DAILY_SALES_LOAD
+  ON RUNCYCLE EVERY_WEEKDAY VALIDFROM 01/01/2025
+  AT 0530 UNTIL 0900
+  CARRYFORWARD
+  FOLLOWS WS_PROD#MASTER#NIGHTLY_INFRA_CHECK.@
+  PRIORITY 50
+:
+  WAIT_SALES_FEED
+    SCRIPTNAME "/apps/feeds/await.sh"
+    STREAMLOGON tws_user
+    OPENS "/data/feeds/sales_YYYYMMDD.csv"
+    RECOVERY STOP
+
+  EXTRACT_ORDERS
+    SCRIPTNAME "/apps/abinitio/run.sh extract_orders.mp"
+    STREAMLOGON tws_user
+    FOLLOWS WAIT_SALES_FEED
+    DESCRIPTION "Extract orders from source"
+    RECOVERY STOP
+
+  TRANSFORM_ORDERS
+    SCRIPTNAME "/apps/abinitio/run.sh transform_orders.mp"
+    STREAMLOGON tws_user
+    FOLLOWS EXTRACT_ORDERS
+    RECOVERY RERUN
+
+  LOAD_ORDERS_TO_DW
+    SCRIPTNAME "/apps/bteq/load_orders.bteq"
+    STREAMLOGON tws_user
+    FOLLOWS TRANSFORM_ORDERS
+    NEEDS 1 DW_LOAD_SLOT
+    RECOVERY CONTINUE
+
+  REFRESH_TABLEAU_EXTRACT
+    SCRIPTNAME "/apps/tableau/refresh.sh sales_dashboard"
+    STREAMLOGON tableau_svc
+    FOLLOWS LOAD_ORDERS_TO_DW
+    RECOVERY CONTINUE
+END
+
+# ============================================================
+# Stream C — Finance reconciliation (cross-workstation dependency)
+# ============================================================
+SCHEDULE WS_PROD#MASTER#FINANCE_RECON
+  ON RUNCYCLE EVERY_WEEKDAY VALIDFROM 01/01/2025
+  AT 0700
+  FOLLOWS WS_PROD#MASTER#DAILY_SALES_LOAD.@
+  FOLLOWS WS_FINANCE#MASTER#GL_CLOSE.@
+:
+  RECON_GL_VS_SALES
+    SCRIPTNAME "/apps/finance/recon.sh"
+    STREAMLOGON finance_user
+    NEEDS 1 RECON_LOCK
+    RECOVERY STOP
+
+  EMAIL_RECON_REPORT
+    SCRIPTNAME "/apps/finance/email_report.sh recon_summary.html"
+    STREAMLOGON finance_user
+    FOLLOWS RECON_GL_VS_SALES
+    RECOVERY CONTINUE
+END

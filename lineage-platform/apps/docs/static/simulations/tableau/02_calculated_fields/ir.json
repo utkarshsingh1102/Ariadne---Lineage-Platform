@@ -1,0 +1,319 @@
+{
+  "id": "ed068dfe16cec3e6",
+  "name": "02_calculated_fields",
+  "file_path": "/data/inputs/02_calculated_fields.twb",
+  "version": "2024.1",
+  "parsed_at": "2026-06-04T05:07:02.541842+00:00",
+  "datasources": [
+    {
+      "id": "37974d9ce7044adc",
+      "name": "orders_ds",
+      "workbook_id": "ed068dfe16cec3e6",
+      "caption": "Orders",
+      "is_federated": false,
+      "has_extract": false,
+      "connections": [
+        {
+          "id": "dc8cdfd1b0af39e8",
+          "klass": "teradata",
+          "server": "td-prod",
+          "dbname": "PROD",
+          "schema": "SALES",
+          "port": "",
+          "username": "",
+          "line": 10
+        }
+      ],
+      "tables": [
+        {
+          "id": "fb8e6b859d8c1a2d",
+          "name": "Orders",
+          "schema": "SALES",
+          "database": "PROD",
+          "fully_qualified_name": "PROD.SALES.ORDERS",
+          "relation_type": "table",
+          "source_type": "database",
+          "line": 11,
+          "raw_sql": ""
+        }
+      ],
+      "fields": [
+        {
+          "id": "987b19bacb908780",
+          "name": "OrderID",
+          "datasource_id": "37974d9ce7044adc",
+          "datatype": "integer",
+          "role": "dimension",
+          "is_calculated": false,
+          "formula": "",
+          "table_fqn": "PROD.SALES.ORDERS",
+          "line": 14,
+          "default_aggregation": "",
+          "ordinal": null,
+          "precision": null,
+          "scale": null,
+          "contains_null": null,
+          "value_aliases": {}
+        },
+        {
+          "id": "de361246c14eeebe",
+          "name": "CustomerID",
+          "datasource_id": "37974d9ce7044adc",
+          "datatype": "integer",
+          "role": "dimension",
+          "is_calculated": false,
+          "formula": "",
+          "table_fqn": "PROD.SALES.ORDERS",
+          "line": 15,
+          "default_aggregation": "",
+          "ordinal": null,
+          "precision": null,
+          "scale": null,
+          "contains_null": null,
+          "value_aliases": {}
+        },
+        {
+          "id": "5e35b1c4ab35869f",
+          "name": "Amount",
+          "datasource_id": "37974d9ce7044adc",
+          "datatype": "real",
+          "role": "measure",
+          "is_calculated": false,
+          "formula": "",
+          "table_fqn": "PROD.SALES.ORDERS",
+          "line": 16,
+          "default_aggregation": "",
+          "ordinal": null,
+          "precision": null,
+          "scale": null,
+          "contains_null": null,
+          "value_aliases": {}
+        },
+        {
+          "id": "33e0105f05a2bb46",
+          "name": "OrderDate",
+          "datasource_id": "37974d9ce7044adc",
+          "datatype": "date",
+          "role": "dimension",
+          "is_calculated": false,
+          "formula": "",
+          "table_fqn": "PROD.SALES.ORDERS",
+          "line": 17,
+          "default_aggregation": "",
+          "ordinal": null,
+          "precision": null,
+          "scale": null,
+          "contains_null": null,
+          "value_aliases": {}
+        },
+        {
+          "id": "13ecebbce3b8fdb1",
+          "name": "AmountWithTax",
+          "datasource_id": "37974d9ce7044adc",
+          "datatype": "real",
+          "role": "measure",
+          "is_calculated": true,
+          "formula": "[Amount] * 1.18",
+          "table_fqn": "",
+          "line": 21,
+          "default_aggregation": "",
+          "ordinal": null,
+          "precision": null,
+          "scale": null,
+          "contains_null": null,
+          "value_aliases": {}
+        },
+        {
+          "id": "9e953b0565036c26",
+          "name": "Profit",
+          "datasource_id": "37974d9ce7044adc",
+          "datatype": "real",
+          "role": "measure",
+          "is_calculated": true,
+          "formula": "[AmountWithTax] - [Amount]",
+          "table_fqn": "",
+          "line": 26,
+          "default_aggregation": "",
+          "ordinal": null,
+          "precision": null,
+          "scale": null,
+          "contains_null": null,
+          "value_aliases": {}
+        },
+        {
+          "id": "853e03421293169e",
+          "name": "TotalPerCustomer",
+          "datasource_id": "37974d9ce7044adc",
+          "datatype": "real",
+          "role": "measure",
+          "is_calculated": true,
+          "formula": "{FIXED [CustomerID] : SUM([Amount])}",
+          "table_fqn": "",
+          "line": 31,
+          "default_aggregation": "",
+          "ordinal": null,
+          "precision": null,
+          "scale": null,
+          "contains_null": null,
+          "value_aliases": {}
+        },
+        {
+          "id": "3ad8e3f31d442fc1",
+          "name": "OrderTier",
+          "datasource_id": "37974d9ce7044adc",
+          "datatype": "string",
+          "role": "dimension",
+          "is_calculated": true,
+          "formula": "IF [Amount] > 1000 THEN 'High' ELSEIF [Amount] > 100 THEN 'Mid' ELSE 'Low' END",
+          "table_fqn": "",
+          "line": 36,
+          "default_aggregation": "",
+          "ordinal": null,
+          "precision": null,
+          "scale": null,
+          "contains_null": null,
+          "value_aliases": {}
+        }
+      ],
+      "derives_from": [
+        {
+          "target_field": "AmountWithTax",
+          "source_fields": [
+            "Amount"
+          ],
+          "datasource_id": "37974d9ce7044adc",
+          "formula": "[Amount] * 1.18",
+          "line": 21,
+          "refs": [
+            {
+              "source_name": "Amount",
+              "char_start": 0,
+              "char_end": 8,
+              "kind": "field",
+              "datasource_name": ""
+            }
+          ]
+        },
+        {
+          "target_field": "Profit",
+          "source_fields": [
+            "AmountWithTax",
+            "Amount"
+          ],
+          "datasource_id": "37974d9ce7044adc",
+          "formula": "[AmountWithTax] - [Amount]",
+          "line": 26,
+          "refs": [
+            {
+              "source_name": "AmountWithTax",
+              "char_start": 0,
+              "char_end": 15,
+              "kind": "field",
+              "datasource_name": ""
+            },
+            {
+              "source_name": "Amount",
+              "char_start": 18,
+              "char_end": 26,
+              "kind": "field",
+              "datasource_name": ""
+            }
+          ]
+        },
+        {
+          "target_field": "TotalPerCustomer",
+          "source_fields": [
+            "CustomerID",
+            "Amount"
+          ],
+          "datasource_id": "37974d9ce7044adc",
+          "formula": "{FIXED [CustomerID] : SUM([Amount])}",
+          "line": 31,
+          "refs": [
+            {
+              "source_name": "CustomerID",
+              "char_start": 7,
+              "char_end": 19,
+              "kind": "lod_dim",
+              "datasource_name": ""
+            },
+            {
+              "source_name": "Amount",
+              "char_start": 26,
+              "char_end": 34,
+              "kind": "field",
+              "datasource_name": ""
+            }
+          ]
+        },
+        {
+          "target_field": "OrderTier",
+          "source_fields": [
+            "Amount"
+          ],
+          "datasource_id": "37974d9ce7044adc",
+          "formula": "IF [Amount] > 1000 THEN 'High' ELSEIF [Amount] > 100 THEN 'Mid' ELSE 'Low' END",
+          "line": 36,
+          "refs": [
+            {
+              "source_name": "Amount",
+              "char_start": 3,
+              "char_end": 11,
+              "kind": "field",
+              "datasource_name": ""
+            },
+            {
+              "source_name": "Amount",
+              "char_start": 38,
+              "char_end": 46,
+              "kind": "field",
+              "datasource_name": ""
+            }
+          ]
+        }
+      ],
+      "has_columns": [
+        {
+          "table_id": "fb8e6b859d8c1a2d",
+          "field_id": "987b19bacb908780"
+        },
+        {
+          "table_id": "fb8e6b859d8c1a2d",
+          "field_id": "de361246c14eeebe"
+        },
+        {
+          "table_id": "fb8e6b859d8c1a2d",
+          "field_id": "5e35b1c4ab35869f"
+        },
+        {
+          "table_id": "fb8e6b859d8c1a2d",
+          "field_id": "33e0105f05a2bb46"
+        }
+      ],
+      "reads_tables": [
+        {
+          "datasource_id": "37974d9ce7044adc",
+          "table_id": "fb8e6b859d8c1a2d",
+          "relation_type": "table",
+          "line": 11
+        }
+      ],
+      "filters": [],
+      "groups": [],
+      "sets": [],
+      "bins": [],
+      "hierarchies": [],
+      "cte_columns": [],
+      "line": 9,
+      "line_end": null
+    }
+  ],
+  "worksheets": [],
+  "dashboards": [],
+  "parameters": [],
+  "parameter_scopes": [],
+  "cross_ds_refs": [],
+  "line": 7,
+  "line_end": 41,
+  "warnings": []
+}

@@ -1,0 +1,27 @@
+---
+title: qlikview-chart-lineage
+sidebar_label: qlikview-chart-lineage
+---
+
+# Cypher preset · `qlikview-chart-lineage`
+
+Source: [`apps/gateway/src/lineage_gateway/presets/qlikview-chart-lineage.cypher`](https://github.com/utkarshsingh1102/Ariadne---Lineage-Platform/blob/main/lineage-platform/apps/gateway/src/lineage_gateway/presets/qlikview-chart-lineage.cypher).
+
+Invoke via the gateway:
+
+```bash
+curl -X POST "http://localhost:8000/graph/query/preset/qlikview-chart-lineage?node_id=<id>" \
+  -H "content-type: application/json" -d '{}'
+```
+
+## Cypher
+
+```cypher
+// QlikView chart → field → derived chain → physical :Table.
+MATCH path = (c:QlikChart)-[:USES_FIELD]->(:Attribute)
+             -[:DERIVES_FROM*0..6]->(col:Attribute)
+             <-[:HAS_COLUMN]-(t:Table)
+RETURN path
+LIMIT 200
+```
+

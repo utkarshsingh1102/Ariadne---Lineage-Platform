@@ -1,0 +1,27 @@
+[
+  {
+    "parser": "tableau",
+    "tests": 32,
+    "fixtures": 14
+  },
+  {
+    "parser": "tws",
+    "tests": 23,
+    "fixtures": 14
+  },
+  {
+    "parser": "qlikview",
+    "tests": 32,
+    "fixtures": 13
+  },
+  {
+    "parser": "spark",
+    "tests": 0,
+    "fixtures": 95
+  },
+  {
+    "parser": "gateway",
+    "tests": 6,
+    "fixtures": 0
+  }
+]

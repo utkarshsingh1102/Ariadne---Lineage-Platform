@@ -1,0 +1,109 @@
+{
+  "tag": "workbook",
+  "attrs": {
+    "version": "2024.1",
+    "source-platform": "mac"
+  },
+  "children": [
+    {
+      "tag": "datasources",
+      "attrs": {},
+      "children": [
+        {
+          "tag": "datasource",
+          "attrs": {
+            "caption": "Customer Data",
+            "name": "customer_ds",
+            "inline": "true"
+          },
+          "children": [
+            {
+              "tag": "connection",
+              "attrs": {
+                "class": "teradata",
+                "server": "td-prod",
+                "dbname": "PROD",
+                "schema": "SALES",
+                "port": "1025",
+                "username": "etl_user"
+              },
+              "children": []
+            },
+            {
+              "tag": "relation",
+              "attrs": {
+                "name": "Customer",
+                "table": "[SALES].[Customer]",
+                "type": "table"
+              },
+              "children": []
+            },
+            {
+              "tag": "column",
+              "attrs": {
+                "datatype": "integer",
+                "name": "[CustomerID]",
+                "role": "dimension",
+                "type": "ordinal"
+              },
+              "children": []
+            },
+            {
+              "tag": "column",
+              "attrs": {
+                "datatype": "string",
+                "name": "[CustomerName]",
+                "role": "dimension",
+                "type": "nominal"
+              },
+              "children": []
+            },
+            {
+              "tag": "column",
+              "attrs": {
+                "datatype": "string",
+                "name": "[Region]",
+                "role": "dimension",
+                "type": "nominal"
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "worksheets",
+      "attrs": {},
+      "children": [
+        {
+          "tag": "worksheet",
+          "attrs": {
+            "name": "Customers by Region"
+          },
+          "children": [
+            {
+              "tag": "table",
+              "attrs": {},
+              "children": [
+                {
+                  "tag": "view",
+                  "children": [
+                    {
+                      "_": "\u2026truncated\u2026"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tag": "dashboards",
+      "attrs": {},
+      "children": []
+    }
+  ]
+}

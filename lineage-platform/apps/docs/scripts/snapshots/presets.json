@@ -1,0 +1,8 @@
+[
+  "lineage-downstream.cypher",
+  "lineage-upstream.cypher",
+  "qlikview-chart-lineage.cypher",
+  "spark-connections.cypher",
+  "spark-write-targets.cypher",
+  "tableau-physical-tables.cypher"
+]

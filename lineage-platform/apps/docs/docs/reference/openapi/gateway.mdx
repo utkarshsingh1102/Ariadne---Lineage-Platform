@@ -1,0 +1,177 @@
+---
+title: Gateway — OpenAPI
+sidebar_label: Gateway
+---
+
+# Gateway — OpenAPI reference
+
+_Generated live from `http://localhost:8000/openapi.json`._
+
+API title: **Lineage Platform — Gateway** · v0.1.0
+
+**23** endpoints.
+
+| Method | Path | Summary |
+|---|---|---|
+| `GET` | `/files` | List Files |
+| `DELETE` | `/files/{source}/{file_id}` | Delete File |
+| `GET` | `/files/{source}/{file_id}/source` | File Source |
+| `POST` | `/files/bulk-delete` | Bulk Delete Files |
+| `GET` | `/files/summary` | Files Summary |
+| `GET` | `/graph/node/{node_id}/neighbors` | Node Neighbors |
+| `GET` | `/graph/nodes` | List Nodes |
+| `POST` | `/graph/query/cypher` | Cypher Query |
+| `POST` | `/graph/query/preset/{name}` | Run Preset |
+| `GET` | `/graph/query/presets` | List Presets Endpoint |
+| `GET` | `/graph/schema` | Graph Schema |
+| `GET` | `/health` | Health |
+| `POST` | `/parse` | Parse |
+| `GET` | `/parse/parsers/health` | Parser Health |
+| `POST` | `/parse/upload` | Parse Upload |
+| `POST` | `/parse/upload/auto` | Parse Upload Auto |
+| `POST` | `/parse/upload/multi` | Parse Upload Multi |
+| `GET` | `/projects` | List Projects |
+| `POST` | `/projects` | Create Project |
+| `DELETE` | `/projects/{project_id}` | Delete Project |
+| `GET` | `/projects/{project_id}` | Get Project |
+| `GET` | `/tws/jobs` | Jobs |
+| `GET` | `/version` | Version |
+
+## Per-endpoint detail
+
+### `GET` `/files`
+
+> List Files
+Tags: `files`
+Operation: `list_files_files_get`
+
+### `DELETE` `/files/{source}/{file_id}`
+
+> Delete File
+Tags: `files`
+Operation: `delete_file_files__source___file_id__delete`
+
+### `GET` `/files/{source}/{file_id}/source`
+
+> File Source
+Tags: `files`
+Operation: `file_source_files__source___file_id__source_get`
+
+### `POST` `/files/bulk-delete`
+
+> Bulk Delete Files
+Tags: `files`
+Operation: `bulk_delete_files_files_bulk_delete_post`
+
+### `GET` `/files/summary`
+
+> Files Summary
+Tags: `files`
+Operation: `files_summary_files_summary_get`
+
+### `GET` `/graph/node/{node_id}/neighbors`
+
+> Node Neighbors
+Tags: `graph`
+Operation: `node_neighbors_graph_node__node_id__neighbors_get`
+
+### `GET` `/graph/nodes`
+
+> List Nodes
+Tags: `graph`
+Operation: `list_nodes_graph_nodes_get`
+
+### `POST` `/graph/query/cypher`
+
+> Cypher Query
+Tags: `graph`
+Operation: `cypher_query_graph_query_cypher_post`
+
+### `POST` `/graph/query/preset/{name}`
+
+> Run Preset
+Tags: `graph`
+Operation: `run_preset_graph_query_preset__name__post`
+
+### `GET` `/graph/query/presets`
+
+> List Presets Endpoint
+Tags: `graph`
+Operation: `list_presets_endpoint_graph_query_presets_get`
+
+### `GET` `/graph/schema`
+
+> Graph Schema
+Tags: `graph`
+Operation: `graph_schema_graph_schema_get`
+
+### `GET` `/health`
+
+> Health
+Operation: `health_health_get`
+
+### `POST` `/parse`
+
+> Parse
+Tags: `parse`
+Operation: `parse_parse_post`
+
+### `GET` `/parse/parsers/health`
+
+> Parser Health
+Tags: `parse`
+Operation: `parser_health_parse_parsers_health_get`
+
+### `POST` `/parse/upload`
+
+> Parse Upload
+Tags: `parse`
+Operation: `parse_upload_parse_upload_post`
+
+### `POST` `/parse/upload/auto`
+
+> Parse Upload Auto
+Tags: `parse`
+Operation: `parse_upload_auto_parse_upload_auto_post`
+
+### `POST` `/parse/upload/multi`
+
+> Parse Upload Multi
+Tags: `parse`
+Operation: `parse_upload_multi_parse_upload_multi_post`
+
+### `GET` `/projects`
+
+> List Projects
+Tags: `projects`
+Operation: `list_projects_projects_get`
+
+### `POST` `/projects`
+
+> Create Project
+Tags: `projects`
+Operation: `create_project_projects_post`
+
+### `DELETE` `/projects/{project_id}`
+
+> Delete Project
+Tags: `projects`
+Operation: `delete_project_projects__project_id__delete`
+
+### `GET` `/projects/{project_id}`
+
+> Get Project
+Tags: `projects`
+Operation: `get_project_projects__project_id__get`
+
+### `GET` `/tws/jobs`
+
+> Jobs
+Tags: `tws`
+Operation: `jobs_tws_jobs_get`
+
+### `GET` `/version`
+
+> Version
+Operation: `version_version_get`
+

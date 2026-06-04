@@ -1,0 +1,30 @@
+{
+  "app_name": "01_simple_sql_load",
+  "connections": [
+    {
+      "name": "TERADATA_PROD",
+      "type": "ODBC",
+      "data_source": "TERADATA_PROD",
+      "connection_string": null
+    }
+  ],
+  "variables": [],
+  "subroutines": [],
+  "loads": [
+    {
+      "table_name": "Customer",
+      "source_type": "SQL",
+      "fields": [
+        "CustomerID",
+        "CustomerName",
+        "Region"
+      ],
+      "sql_query": "SQL SELECT\n    CustomerID,\n    CustomerName,\n    Region\nFROM PROD.SALES.CUSTOMER",
+      "source_table": "PROD.SALES.CUSTOMER",
+      "line_number": 8,
+      "is_mapping": false
+    }
+  ],
+  "joins": [],
+  "parse_errors": []
+}

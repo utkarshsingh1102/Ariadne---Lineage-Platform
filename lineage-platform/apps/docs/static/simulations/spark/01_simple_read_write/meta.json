@@ -1,0 +1,9 @@
+{
+  "parser": "spark",
+  "fixture": "01_simple_read_write.py",
+  "stats": {
+    "dataframes": 2,
+    "reads": 2,
+    "writes": 1
+  }
+}
