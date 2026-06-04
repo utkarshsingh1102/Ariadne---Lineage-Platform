@@ -409,7 +409,7 @@ export default function ParsePage() {
               </Tile>
             )}
 
-            {autoFiles.length >= 2 && (
+            {autoFiles.length >= 1 && (
               <Tile>
                 <RadioButtonGroup
                   legendText="Where should these files go?"
@@ -419,12 +419,20 @@ export default function ParsePage() {
                   onChange={(v: any) => setGrouping(v as Grouping)}
                 >
                   <RadioButton
-                    labelText="Route each file to its source folder (default)"
+                    labelText={
+                      autoFiles.length === 1
+                        ? "Route to its source folder (default)"
+                        : "Route each file to its source folder (default)"
+                    }
                     value="source"
                     id="grp-source"
                   />
                   <RadioButton
-                    labelText="Group all files into a new project (per-parser subfolders auto-created)"
+                    labelText={
+                      autoFiles.length === 1
+                        ? "Group into a new project (file is added to that project)"
+                        : "Group all files into a new project (per-parser subfolders auto-created)"
+                    }
                     value="project"
                     id="grp-project"
                   />
