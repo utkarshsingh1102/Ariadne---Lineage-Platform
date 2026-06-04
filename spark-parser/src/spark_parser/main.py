@@ -289,6 +289,11 @@ def parse_input(file_path: str) -> SparkScriptIR:
             var_name="__sql__",
             id=dataframe_id(script_id=sid, var_name="__sql__", creation_order=0),
             from_sql_block=True,
+            # Pure ``.sql`` files have no PySpark chain to anchor against,
+            # so the synthetic DataFrame is itself the anchor. Without this
+            # flag the writer's "skip non-anchor" guard drops it, and the
+            # script's read/write edges never land in Neo4j.
+            is_anchor=True,
         )
         for src in lineage.source_tables:
             df.reads_from.append(TableIR(fully_qualified_name=src, storage_format="hive"))
@@ -373,6 +378,10 @@ def _parse_notebook(path: Path, fmt: str) -> SparkScriptIR:
             ),
             from_sql_block=True,
             cell_index=sql_cell.index,
+            # Same rationale as the .sql-file path — synthetic SQL DataFrames
+            # have no PySpark anchor of their own, so promote them to anchors
+            # so the writer keeps them.
+            is_anchor=True,
         )
         for src in lineage.source_tables:
             df.reads_from.append(TableIR(fully_qualified_name=src, storage_format="hive"))

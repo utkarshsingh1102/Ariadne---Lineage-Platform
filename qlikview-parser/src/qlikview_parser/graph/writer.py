@@ -113,6 +113,7 @@ def write_app(driver, app: QlikViewApp) -> None:
         with driver.session() as s:
             _ensure_constraints(s)
             _write_script(s, app)
+            _write_binary_inheritance(s, app)
             _write_connections(s, app)
             _write_loads(s, app)
             _write_joins(s, app)
@@ -154,10 +155,45 @@ def _ensure_constraints(s) -> None:
 
 def _write_script(s, app: QlikViewApp) -> None:
     sid = _id_short(f"qlik_script::{app.file_path}")
+    # ``basename`` (filename without extension, lowercased) is used by the
+    # BINARY-inheritance edge writer to MERGE source-and-target by name
+    # even when the two .qvs/.qvw files have different on-disk paths.
+    import os as _os
+    base = _os.path.splitext(_os.path.basename(app.file_path or ""))[0].lower()
     s.run(
         "MERGE (q:QlikScript {id: $id}) "
-        "SET q.name = $name, q.file_path = $path, q.source_system = 'qlikview'",
-        id=sid, name=app.app_name, path=app.file_path,
+        "SET q.name = $name, q.file_path = $path, q.source_system = 'qlikview', "
+        "    q.basename = $base",
+        id=sid, name=app.app_name, path=app.file_path, base=base,
+    )
+
+
+def _write_binary_inheritance(s, app: QlikViewApp) -> None:
+    """Emit :QlikScript -[:INHERITS_FROM {via: 'BINARY'}]-> :QlikScript
+    when the app's load script declares ``BINARY '<upstream.qvw>';``.
+
+    Matches the upstream by ``basename`` (filename minus extension,
+    lowercased) so a directive like ``BINARY 'risk_dashboard.qvw'`` in
+    fraud_monitoring.qvs lands an edge on the upstream :QlikScript that
+    was written for risk_dashboard.qvs. When the upstream hasn't been
+    parsed yet (e.g. fraud_monitoring runs first in an auto-batch), the
+    edge is silently skipped — a later re-parse with overwrite=true,
+    where both files are present, will create it.
+    """
+    if not app.binary_load_path:
+        return
+    import os as _os
+    upstream_base = _os.path.splitext(_os.path.basename(app.binary_load_path))[0].lower()
+    if not upstream_base:
+        return
+    sid = _id_short(f"qlik_script::{app.file_path}")
+    s.run(
+        "MATCH (q:QlikScript {id: $sid}) "
+        "MATCH (up:QlikScript {basename: $base}) "
+        "WHERE up <> q "
+        "MERGE (q)-[r:INHERITS_FROM]->(up) "
+        "SET r.via = 'BINARY', r.declared_path = $declared",
+        sid=sid, base=upstream_base, declared=app.binary_load_path,
     )
 
 

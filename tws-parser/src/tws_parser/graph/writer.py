@@ -23,6 +23,7 @@ from tws_parser.config import settings
 from tws_parser.graph import queries
 from tws_parser.models.domain import ParsedComposerUnit, ScheduleIR
 from tws_parser.parser.dependencies import ResolvedDependencies, resolve, resolve_full
+from tws_parser.parser.script_resolver import effective_script_target
 from tws_parser.utils.ids import (
     file_watcher_id,
     resource_id,
@@ -245,15 +246,23 @@ class GraphWriter:
         # Scripts, Resources, FileWatchers — keyed on cross-parser ids. We
         # don't have explicit IRs in unit.* for scripts + file_watchers, so
         # source_files comes from the parent job's provenance.
+        #
+        # For wrapper-style SCRIPTNAMEs ("/apps/spark/submit.sh
+        # ingest_raw.py --env prod"), we hash the WRAPPER + first script-arg
+        # combination so each TWS job that calls a distinct downstream file
+        # gets its own :Script node. Otherwise all six Spark jobs collapse
+        # onto one :Script {path: "submit.sh"} and you can't tell which job
+        # runs which file.
         scripts: dict[str, dict] = {}
         for j in jobs:
             if not j.script_path:
                 continue
-            sid = script_id(j.script_path)
+            effective_path = effective_script_target(j.script_path, j.script_args)
+            sid = script_id(effective_path)
             existing = scripts.get(sid)
             if existing is None:
                 scripts[sid] = {
-                    "id": sid, "path": j.script_path,
+                    "id": sid, "path": effective_path,
                     "script_type": j.script_type or "unknown",
                     "source_files": list(files_for(j.id)),
                 }
@@ -328,10 +337,13 @@ class GraphWriter:
         _batched(s, queries.CONTAINS_JOB, contains_sched)
         _batched(s, queries.CONTAINS_JOB_VIA_STREAM, contains_stream)
 
-        # EXECUTES (job → script)
+        # EXECUTES (job → script) — use the wrapper+arg combined path so
+        # the MATCH lands on the same :Script node we MERGE'd above.
         jobs = [j for sc in unit.schedules for j in sc.jobs]
         executes = [{
-            "job_id": j.id, "path": j.script_path, "args": j.script_args or "",
+            "job_id": j.id,
+            "path": effective_script_target(j.script_path, j.script_args),
+            "args": j.script_args or "",
         } for j in jobs if j.script_path]
         _batched(s, queries.EXECUTES, executes)
 

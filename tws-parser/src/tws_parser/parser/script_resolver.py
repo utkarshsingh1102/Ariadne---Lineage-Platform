@@ -27,6 +27,54 @@ def infer_script_type(path: str) -> str:
     return _TYPE_BY_EXT.get(ext, "unknown")
 
 
+# Wrappers we know shell out to a real script as their first argument.
+# A SCRIPTNAME of ``/apps/spark/submit.sh ingest_raw.py --env prod`` is
+# really ``submit.sh`` invoking ``ingest_raw.py``; the :Script node should
+# distinguish per-target so six Spark jobs don't collapse onto one node.
+_WRAPPER_BASENAMES = frozenset({
+    "submit.sh", "submit",
+    "reload.sh", "reload",
+    "refresh.sh", "refresh",
+    "run.sh", "run",
+    "invoke.sh", "invoke",
+    "wrap.sh", "wrap",
+    "spark-submit", "spark-submit.sh",
+    "dbx", "databricks",
+})
+
+# Anything ending in one of these is a real script target — append it to
+# the wrapper path so each call resolves to its own :Script node.
+_TARGET_EXTS = frozenset({
+    ".py", ".sql", ".bteq", ".mp", ".graph",
+    ".qvs", ".qvw", ".qvf",
+    ".twb", ".twbx",
+    ".scala", ".jar",
+    ".ipynb", ".r", ".rb", ".ksh", ".sh",
+})
+
+
+def effective_script_target(path: str, args: str | None) -> str:
+    """Combine the wrapper path with its first script-extension arg.
+
+    ``effective_script_target("/apps/spark/submit.sh", "ingest_raw.py --env prod")``
+        ``-> "/apps/spark/submit.sh ingest_raw.py"``
+
+    No-op when ``args`` is empty or the first arg has no script-like
+    extension. The wrapper path is preserved as a prefix so the resulting
+    string still tells a human "this was invoked via submit.sh".
+    """
+    if not args or not path:
+        return path or ""
+    first = args.split(None, 1)[0]
+    if not first:
+        return path
+    ext = os.path.splitext(first)[1].lower()
+    base = os.path.basename(path).lower()
+    if ext in _TARGET_EXTS or base in _WRAPPER_BASENAMES:
+        return f"{path} {first}"
+    return path
+
+
 _QUOTED_HEAD_RE = re.compile(r'^"([^"]*)"\s*(.*)$')
 
 
