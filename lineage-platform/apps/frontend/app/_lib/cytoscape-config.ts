@@ -45,6 +45,9 @@ export const LINEAGE_EDGE_TYPES = new Set([
   "CALLS_SCRIPT",
   // TWS v0.2 — script + topology edges count as lineage for traversal.
   "EXECUTES",
+  // v0.3 cross-parser orchestration: :Script -> :SparkScript / :QlikScript /
+  // :TableauWorkbook (the actual file the TWS wrapper invokes).
+  "INVOKES_FILE",
   "DEPENDS_ON",
   "REQUIRES_RESOURCE",
   "WAITS_FOR_FILE",
@@ -658,6 +661,17 @@ export const cytoscapeStyles: Stylesheet[] = [
   {
     selector: "edge[label = 'EXECUTES']",
     style: { "line-color": "#525252", "target-arrow-color": "#525252" },
+  },
+  {
+    // v0.3 cross-parser orchestration arrow — bold magenta so the
+    // TWS-wrapper-to-actual-file edge is unmistakable in the graph.
+    selector: "edge[label = 'INVOKES_FILE']",
+    style: {
+      "line-color": "#d12771",
+      "target-arrow-color": "#d12771",
+      width: 2.5,
+      "line-style": "dashed",
+    },
   },
   // QlikView v0.2 / Phase 3 — distinct strokes for the new edge vocab.
   {

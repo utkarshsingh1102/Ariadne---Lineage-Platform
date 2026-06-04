@@ -53,6 +53,9 @@ MATCH path = (downstream)-[
   // TWS v0.2 — script + resource renames + new topology edges.
   // EXECUTES replaces CALLS_SCRIPT (above kept for legacy graphs pending migration).
   |EXECUTES
+  // v0.3 cross-parser orchestration stitch: :Script -> :SparkScript /
+  // :QlikScript / :TableauWorkbook (the actual file the TWS wrapper invokes).
+  |INVOKES_FILE
   |REQUIRES_RESOURCE
   |WAITS_FOR_FILE
   |WAITS_FOR_PROMPT
